@@ -21,11 +21,19 @@ jobs:
 
       - name: Install Python dependencies for testing
         run: |
-          pip install flask==3.1.1 prometheus_client==0.22.0 pytest pytest-mock
+          pip install flask==3.1.1 prometheus_client==0.22.0 pytest pytest-mock pytest-cov
 
-      - name: Run unit tests (verbose)
+      - name: Run tests with coverage
         run: |
-          PYTHONPATH=./app pytest -v --tb=short tests/
+          PYTHONPATH=./app pytest --cov=app --cov-report=term --cov-report=xml -v tests/
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          flags: unittests
+          name: codecov-clustermetrics
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
