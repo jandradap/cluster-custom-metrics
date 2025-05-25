@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-custom-metrics
+  labels:
+    app: cluster-custom-metrics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cluster-custom-metrics
+  template:
+    metadata:
+      labels:
+        app: cluster-custom-metrics
+    spec:
+      serviceAccountName: metrics-reader
+      containers:
+      - name: app
+        image: yourregistry/cluster-custom-metrics:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        env:
+        - name: PORT
+          value: "8080"
+        - name: SUBNET
+          value: "192.168.1.0/24"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cluster-custom-metrics
+spec:
+  selector:
+    app: cluster-custom-metrics
+  ports:
+  - port: 80
+    targetPort: 8080
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: cluster-custom-metrics-monitor
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: cluster-custom-metrics
+  endpoints:
+  - port: 80
+    path: /metrics
+    interval: 30s
