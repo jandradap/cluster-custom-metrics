@@ -9,7 +9,7 @@ WORKDIR /app
 
 USER 0
 
-RUN curl -sL https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz \
+RUN curl -sL https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz \
     | tar -xz -C /usr/local/bin oc && \
     chmod +x /usr/local/bin/oc && \
     pip install --no-cache-dir flask==3.1.1 prometheus_client==0.22.0 && \

@@ -32,29 +32,86 @@ def home():
     libres = total_ips - used
     pie_data = f"{used},{libres}"
     return render_template_string("""
-        <html><head><title>Métricas EgressIP</title>
-        <script src="/static/chart.min.js"></script>
-        <meta http-equiv="refresh" content="30">
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Métricas EgressIP</title>
+            <script src="/static/chart.min.js"></script>
+            <meta http-equiv="refresh" content="60">
+            <style>
+                body {
+                    font-family: 'RedHatDisplay', sans-serif;
+                    background-color: #f5f5f5;
+                    padding: 2em;
+                    color: #003366;
+                }
+                h2 {
+                    color: #cc0000;
+                }
+                h3 {
+                    color: #003366;
+                    margin-top: 2em;
+                }
+                canvas {
+                    max-width: 300px;
+                    margin: 1em auto;
+                    display: block;
+                }
+                ul {
+                    background: #fff;
+                    padding: 1em;
+                    border-radius: 5px;
+                    list-style: square;
+                }
+                li {
+                    padding: 0.2em 0;
+                }
+                .legend {
+                    display: flex;
+                    justify-content: center;
+                    gap: 1em;
+                    margin-bottom: 1em;
+                }
+                .legend span {
+                    display: inline-block;
+                    width: 15px;
+                    height: 15px;
+                    margin-right: 5px;
+                    vertical-align: middle;
+                }
+                .red { background: #cc0000; }
+                .green { background: #7dc243; }
+            </style>
         </head>
-        <body style="font-family: sans-serif; padding: 2em">
+        <body>
             <h2>Resumen IPs en red {{ subnet }}</h2>
-            <div style="max-width: 240px; margin-bottom: 2em;"><canvas id="pieChart"></canvas></div>
+            <div class="legend">
+              <div><span class="red"></span>Usadas</div>
+              <div><span class="green"></span>Disponibles</div>
+            </div>
+            <canvas id="pieChart"></canvas>
             <script>
               new Chart(document.getElementById('pieChart').getContext('2d'), {
                 type: 'pie',
                 data: {
                   labels: ['Usadas', 'Disponibles'],
-                  datasets: [{ data: [{{ pie_data }}], backgroundColor: ['#F66', '#6F6'] }]
+                  datasets: [{ data: [{{ pie_data }}], backgroundColor: ['#cc0000', '#7dc243'] }]
                 }
               });
             </script>
+
             <h3>Namespaces sin NetworkPolicy</h3>
             <ul>{% for ns in np %}<li>{{ ns }}</li>{% endfor %}</ul>
+
             <h3>Namespaces con CrashLoopBackOff</h3>
             <ul>{% for ns in crashloop %}<li>{{ ns }}</li>{% endfor %}</ul>
+
             <h3>Namespaces sin ResourceQuota</h3>
             <ul>{% for ns in quota %}<li>{{ ns }}</li>{% endfor %}</ul>
-        </body></html>
+        </body>
+        </html>
     """, subnet=subnet_cidr, pie_data=pie_data, np=cache_resultados["np"], crashloop=cache_resultados["crashloop"], quota=cache_resultados["quota"])
 
 @app.route("/metrics")
