@@ -4,9 +4,9 @@
 [![codecov](https://codecov.io/github/jandradap/cluster-custom-metrics/branch/develop/graph/badge.svg?token=3XICVV1DMD)](https://codecov.io/github/jandradap/cluster-custom-metrics)
 
 **Docker Hub:**
-[![Docker Hub - Tag](https://img.shields.io/docker/v/jandradap/cluster-custom-metrics?label=version&sort=semver)](https://hub.docker.com/r/jandradap/cluster-custom-metrics)
-[![Docker Hub - Size](https://img.shields.io/docker/image-size/jandradap/cluster-custom-metrics/latest)](https://hub.docker.com/r/jandradap/cluster-custom-metrics)
-[![Docker Hub - Pulls](https://img.shields.io/docker/pulls/jandradap/cluster-custom-metrics)](https://hub.docker.com/r/jandradap/cluster-custom-metrics)
+[![Docker Hub - Tag](https://img.shields.io/docker/v/jorgeandrada/cluster-custom-metrics?label=version&sort=semver)](https://hub.docker.com/r/jorgeandrada/cluster-custom-metrics)
+[![Docker Hub - Size](https://img.shields.io/docker/image-size/jorgeandrada/cluster-custom-metrics/latest)](https://hub.docker.com/r/jorgeandrada/cluster-custom-metrics)
+[![Docker Hub - Pulls](https://img.shields.io/docker/pulls/jorgeandrada/cluster-custom-metrics)](https://hub.docker.com/r/jorgeandrada/cluster-custom-metrics)
 
 **Quay.io:**
 [![Quay - Version](https://img.shields.io/badge/quay.io-latest-red)](https://quay.io/repository/jandradap/cluster-custom-metrics)
