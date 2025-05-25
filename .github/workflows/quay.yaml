@@ -28,15 +28,30 @@ jobs:
         id: get_tag
         run: |
           if [[ "${{ github.event_name }}" == "release" ]]; then
-            echo "::set-output name=tag::${{ github.event.release.tag_name }}"
+            echo "tag=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=tag::develop"
+            echo "tag=develop" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build and push
+      - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
           context: ./app
           file: ./app/Dockerfile
-          push: true
-          tags: quay.io/jandradap/cluster-custom-metrics:${{ steps.get_tag.outputs.tag }}
+          push: false
+          tags: cluster-custom-metrics:temp
+
+      - name: Scan with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: cluster-custom-metrics:temp
+          severity: HIGH,CRITICAL
+          exit-code: 1
+          ignore-unfixed: true
+        continue-on-error: ${{ github.ref == 'refs/heads/develop' }}
+
+      - name: Tag and Push
+        if: github.ref == 'refs/heads/develop' || github.event_name == 'release'
+        run: |
+          docker tag cluster-custom-metrics:temp quay.io/jandradap/cluster-custom-metrics:${{ steps.get_tag.outputs.tag }}
+          docker push quay.io/jandradap/cluster-custom-metrics:${{ steps.get_tag.outputs.tag }}
