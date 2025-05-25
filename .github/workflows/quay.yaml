@@ -47,7 +47,6 @@ jobs:
           image-ref: cluster-custom-metrics:temp
           severity: HIGH,CRITICAL
           exit-code: 1
-          ignore-policy: .trivyignore
           ignore-unfixed: true
         continue-on-error: ${{ github.ref == 'refs/heads/develop' }}
 
