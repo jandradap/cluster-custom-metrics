@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/python-311:latest
+FROM registry.access.redhat.com/ubi9/python-311:9.6-1747333117
 
 ENV FLASK_APP=app.py \
     FLASK_RUN_PORT=8080 \
@@ -13,6 +13,8 @@ RUN dnf update -y && \
     curl -sL https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz \
     | tar -xz -C /usr/local/bin oc && \
     chmod +x /usr/local/bin/oc && \
+    #CVE
+    pip install --upgrade pip setuptools && \
     pip install --no-cache-dir flask==3.1.1 prometheus_client==0.22.0 && \
     rm -rf /root/.cache
 
