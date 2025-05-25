@@ -39,4 +39,4 @@ jobs:
           context: ./app
           file: ./app/Dockerfile
           push: true
-          tags: quay.io/${{ secrets.QUAY_USERNAME }}/cluster-custom-metrics:${{ steps.get_tag.outputs.tag }}
+          tags: quay.io/jandradap/cluster-custom-metrics:${{ steps.get_tag.outputs.tag }}
