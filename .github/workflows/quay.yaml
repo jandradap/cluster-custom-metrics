@@ -32,13 +32,13 @@ jobs:
           else
             echo "tag=develop" >> $GITHUB_OUTPUT
           fi
-
-      - name: Build Docker image
+ 
+      - name: Build Docker image (with local load)
         uses: docker/build-push-action@v5
         with:
           context: ./app
           file: ./app/Dockerfile
-          push: false
+          load: true
           tags: cluster-custom-metrics:temp
 
       - name: Scan with Trivy
