@@ -9,13 +9,14 @@ WORKDIR /app
 
 USER 0
 
+COPY requirements.txt .
+
 RUN dnf update -y && \
     curl -sL https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz \
     | tar -xz -C /usr/local/bin oc && \
     chmod +x /usr/local/bin/oc && \
     #CVE
-    pip install --upgrade pip setuptools && \
-    pip install --no-cache-dir flask==3.1.1 prometheus_client==0.22.0 && \
+    pip install --no-cache-dir -r requirements.txt && \
     rm -rf /usr/lib/python3.9/site-packages/urllib3-1.26.5-py3.9.egg-info && \
     rm -rf /usr/lib/python3.9/site-packages/requests-2.25.1.dist-info && \
     rm -rf /usr/lib/python3.11/site-packages/pip-22.3.1.dist-info && \
@@ -26,7 +27,7 @@ RUN dnf update -y && \
 
 
 
-#USER 1001
+USER 1001
 
 # Copiar archivos de la app
 COPY app.py ./
