@@ -1,6 +1,6 @@
 # Despliegue de cluster-custom-metrics en OpenShift
 
-[![codecov](https://codecov.io/gh/jandradap/cluster-custom-metrics/graph/badge.svg?token=3XICVV1DMD)](https://codecov.io/gh/jandradap/cluster-custom-metrics)
+[![codecov](https://codecov.io/github/jandradap/cluster-custom-metrics/branch/develop/graph/badge.svg?token=3XICVV1DMD)](https://codecov.io/github/jandradap/cluster-custom-metrics)
 
 Este documento describe los pasos para desplegar la aplicación `cluster-custom-metrics` en un clúster OpenShift, así como las variables de entorno requeridas, permisos necesarios y ejemplo de dashboard en Grafana.
 
