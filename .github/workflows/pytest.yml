@@ -21,4 +21,4 @@ jobs:
         pip install flask==3.1.1 prometheus_client==0.22.0 pytest
 
     - name: Run tests
-      run: pytest test_app.py
+      run: pytest /tests/test_app.py
