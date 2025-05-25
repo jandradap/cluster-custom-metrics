@@ -16,9 +16,17 @@ RUN dnf update -y && \
     #CVE
     pip install --upgrade pip setuptools && \
     pip install --no-cache-dir flask==3.1.1 prometheus_client==0.22.0 && \
+    rm -rf /usr/lib/python3.9/site-packages/urllib3-1.26.5-py3.9.egg-info && \
+    rm -rf /usr/lib/python3.9/site-packages/requests-2.25.1.dist-info && \
+    rm -rf /usr/lib/python3.11/site-packages/pip-22.3.1.dist-info && \
+    rm -rf /usr/lib/python3.9/site-packages/idna-2.10-py3.9.egg-info && \
+    rm -rf /usr/lib/python3.9/site-packages/setuptools-53.0.0.dist-info && \
+    rm -rf /usr/lib/python3.11/site-packages/setuptools-65.5.1.dist-info && \
     rm -rf /root/.cache
 
-USER 1001
+
+
+#USER 1001
 
 # Copiar archivos de la app
 COPY app.py ./
