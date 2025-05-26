@@ -1,17 +1,16 @@
 # Despliegue de cluster-custom-metrics en OpenShift
 
-**Codecov:**
-[![codecov](https://codecov.io/github/jandradap/cluster-custom-metrics/branch/develop/graph/badge.svg?token=3XICVV1DMD)](https://codecov.io/github/jandradap/cluster-custom-metrics)
-
 **Docker Hub:**
 [![Docker Hub - Tag](https://img.shields.io/docker/v/jorgeandrada/cluster-custom-metrics?label=version&sort=semver)](https://hub.docker.com/r/jorgeandrada/cluster-custom-metrics)
-[![Docker Hub - Size](https://img.shields.io/docker/image-size/jorgeandrada/cluster-custom-metrics/latest)](https://hub.docker.com/r/jorgeandrada/cluster-custom-metrics)
 [![Docker Hub - Pulls](https://img.shields.io/docker/pulls/jorgeandrada/cluster-custom-metrics)](https://hub.docker.com/r/jorgeandrada/cluster-custom-metrics)
 
 **Quay.io:**
 [![Quay - Version](https://img.shields.io/badge/quay.io-latest-red)](https://quay.io/repository/jandradap/cluster-custom-metrics)
 [![Quay - Repositorio](https://img.shields.io/badge/Quay.io-cluster--custom--metrics-blue?logo=redhat)](https://quay.io/repository/jandradap/cluster-custom-metrics)
 
+**Info:**
+[![codecov](https://codecov.io/github/jandradap/cluster-custom-metrics/branch/develop/graph/badge.svg?token=3XICVV1DMD)](https://codecov.io/github/jandradap/cluster-custom-metrics)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/jandradap/cluster-custom-metrics)
 
 Este documento describe los pasos para desplegar la aplicación `cluster-custom-metrics` en un clúster OpenShift, así como las variables de entorno requeridas, permisos necesarios y ejemplo de dashboard en Grafana.
 
