@@ -91,7 +91,6 @@ def actualizar_metricas():
             logging.debug(f"➡️ Ejecutando: {' '.join(cmd)}")
             result = subprocess.check_output(cmd, text=True)
             logging.debug(f"✅ Resultado {desc}:\n{result.strip()}")
-{result.strip()}")
             return result.strip().splitlines()
         except Exception as e:
             logging.warning(f"❌ Error en {desc}: {e}")
