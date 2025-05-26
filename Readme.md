@@ -27,8 +27,8 @@ Este documento describe los pasos para desplegar la aplicación `cluster-custom-
 ## 2. Crear ServiceAccount con permisos
 
 ```bash
-oc create serviceaccount metrics-reader -n openshift-monitoring
-oc adm policy add-cluster-role-to-user cluster-reader -z metrics-reader -n openshift-monitoring
+oc create serviceaccount metrics-reader -n cluster-monitoring
+oc adm policy add-cluster-role-to-user cluster-reader -z metrics-reader -n cluster-monitoring
 ```
 
 ---
@@ -40,16 +40,6 @@ oc adm policy add-cluster-role-to-user cluster-reader -z metrics-reader -n opens
 ```bash
 oc apply -f deployment-cluster-custom-metrics.yaml
 ```
-
-2. **(Opcional)** Si estás en entorno desconectado, asegúrate de haber construido la imagen previamente:
-
-```bash
-podman build -t cluster-custom-metrics:latest .
-podman tag cluster-custom-metrics:latest yourregistry/cluster-custom-metrics:latest
-podman push yourregistry/cluster-custom-metrics:latest
-```
-
----
 
 ## 4. Variables de entorno utilizadas
 

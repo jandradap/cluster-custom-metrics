@@ -17,7 +17,7 @@ spec:
       serviceAccountName: metrics-reader
       containers:
       - name: app
-        image: yourregistry/cluster-custom-metrics:latest
+        image: quay.io/jandradap/cluster-custom-metrics@sha256:2075882fb5d7b674289701ffe22636bdfa803ce8be3a3ab96880e752c57946ef
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080
