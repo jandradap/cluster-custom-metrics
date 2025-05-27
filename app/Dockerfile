@@ -30,7 +30,9 @@ USER 1001
 
 # Copiar archivos de la app
 COPY app.py ./
+COPY __init__.py ./
 COPY static/ ./static/
+COPY templates/ ./templates/
 
 EXPOSE 8080
 
