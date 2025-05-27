@@ -1,3 +1,4 @@
+
 import os
 import subprocess
 import ipaddress
@@ -5,25 +6,19 @@ import json
 import logging
 import fnmatch
 from threading import Timer
-from flask import Flask, Response, render_template_string, send_from_directory
+from flask import Flask, Response, render_template_string
 from prometheus_client import Gauge, generate_latest, CollectorRegistry
 
-app = Flask(__name__, static_folder='static')
 registry = CollectorRegistry()
-
 debug_mode = os.getenv("FLASK_DEBUG", "false").lower() == "true"
 log_level = logging.DEBUG if debug_mode else logging.INFO
 logging.basicConfig(level=log_level, format='%(asctime)s - %(levelname)s - %(message)s')
 
-config_file = os.getenv("CONFIG_PATH", "config.json")
-with open(config_file) as f:
-    config = json.load(f)
+app = Flask(__name__, static_folder='static')
 
-subnet_cidr = config.get("subnet", "192.168.1.0/24")
-excluir_ns_patterns = config.get("exclude_namespaces", [])
-
-def excluir_ns(ns):
-    return any(fnmatch.fnmatch(ns, pattern) for pattern in excluir_ns_patterns)
+subnet_cidr = "192.168.1.0/24"
+excluir_ns_patterns = []
+cache_resultados = {"np": [], "crashloop": [], "quota": []}
 
 egressip_total = Gauge('egressip_total', 'Total de IPs disponibles en la VLAN', registry=registry)
 egresip_uso = Gauge('egressip_uso', 'IPs en uso (egressips + nodos)', registry=registry)
@@ -34,7 +29,8 @@ ns_crashloop_label = Gauge('namespace_crashloop', 'Namespace con pods en CrashLo
 ns_quota_total = Gauge('namespaces_sin_resourcequota_total', 'Total de namespaces sin ResourceQuotas', registry=registry)
 ns_quota_label = Gauge('namespace_sin_quota', 'Namespace sin ResourceQuota', ['namespace'], registry=registry)
 
-cache_resultados = { "np": [], "crashloop": [], "quota": [] }
+def excluir_ns(ns):
+    return any(fnmatch.fnmatch(ns, pattern) for pattern in excluir_ns_patterns)
 
 @app.route("/")
 def home():
@@ -42,43 +38,7 @@ def home():
     used = len(cache_resultados["np"]) + len(cache_resultados["crashloop"])
     libres = total_ips - used
     pie_data = f"{used},{libres},{total_ips}"
-    return render_template_string("""
-    <!DOCTYPE html>
-    <html><head><title>Métricas EgressIP</title>
-    <script src="/static/chart.min.js"></script>
-    <meta http-equiv="refresh" content="30">
-    <style>body { font-family: sans-serif; background: #f9f9f9; padding: 2em; }
-    h3 { margin-top: 1.5em; }
-    ul { padding: 1em; background: #fff; border-radius: 8px; }</style>
-    </head><body>
-    <h2>Resumen IPs en red {{ subnet }}</h2>
-    <canvas id="pieChart" width="200" height="200"></canvas>
-    <script>
-      new Chart(document.getElementById('pieChart').getContext('2d'), {
-        type: 'doughnut',
-        data: {
-          labels: ['Usadas (egress+nodos)', 'Disponibles', 'Total IPs'],
-          datasets: [{
-            data: [{{ pie_data }}],
-            backgroundColor: ['#cc0000', '#7dc243', '#bbb']
-          }]
-        },
-        options: {
-          plugins: {
-            legend: { position: 'bottom' }
-          },
-          cutout: '60%'
-        }
-      });
-    </script>
-    <h3>Namespaces sin NetworkPolicy</h3>
-    {% if np %}<ul>{% for ns in np %}<li>{{ ns }}</li>{% endfor %}</ul>{% else %}<p><i>No se encontraron namespaces sin políticas.</i></p>{% endif %}
-    <h3>Namespaces con CrashLoopBackOff</h3>
-    {% if crashloop %}<ul>{% for ns in crashloop %}<li>{{ ns }}</li>{% endfor %}</ul>{% else %}<p><i>No se encontraron pods en CrashLoop.</i></p>{% endif %}
-    <h3>Namespaces sin ResourceQuota</h3>
-    {% if quota %}<ul>{% for ns in quota %}<li>{{ ns }}</li>{% endfor %}</ul>{% else %}<p><i>No se encontraron namespaces sin quotas.</i></p>{% endif %}
-    </body></html>
-    """, subnet=subnet_cidr, pie_data=pie_data, np=cache_resultados["np"], crashloop=cache_resultados["crashloop"], quota=cache_resultados["quota"])
+    return render_template_string("Métricas EgressIP OK", subnet=subnet_cidr, pie_data=pie_data, np=cache_resultados["np"], crashloop=cache_resultados["crashloop"], quota=cache_resultados["quota"])
 
 @app.route("/metrics")
 def metrics():
@@ -86,11 +46,13 @@ def metrics():
 
 def actualizar_metricas():
     logging.debug("⏳ Ejecutando actualización periódica de métricas")
+
     def run_cmd(desc, cmd):
         try:
             logging.debug(f"➡️ Ejecutando: {' '.join(cmd)}")
             result = subprocess.check_output(cmd, text=True)
-            logging.debug(f"✅ Resultado {desc}:\n{result.strip()}")
+            logging.debug(f"✅ Resultado {desc}:
+{result.strip()}")
             return result.strip().splitlines()
         except Exception as e:
             logging.warning(f"❌ Error en {desc}: {e}")
@@ -106,10 +68,7 @@ def actualizar_metricas():
     ns_list = run_cmd("namespaces", ["oc", "get", "ns", "-o", "jsonpath={range .items[*]}{.metadata.name}\n{end}"])
     ns_list = [ns for ns in ns_list if not excluir_ns(ns)]
 
-    sin_np = []
-    for ns in ns_list:
-        if not run_cmd(f"networkpolicy en {ns}", ["oc", "get", "networkpolicy", "-n", ns]):
-            sin_np.append(ns)
+    sin_np = [ns for ns in ns_list if not run_cmd(f"networkpolicy en {ns}", ["oc", "get", "networkpolicy", "-n", ns])]
     cache_resultados["np"] = sin_np
     ns_sin_np_total.set(len(sin_np))
     for ns in sin_np:
@@ -125,10 +84,7 @@ def actualizar_metricas():
     for ns in crashloop:
         ns_crashloop_label.labels(namespace=ns).set(1)
 
-    sin_quota = []
-    for ns in ns_list:
-        if not run_cmd(f"quotas en {ns}", ["oc", "get", "resourcequota", "-n", ns]):
-            sin_quota.append(ns)
+    sin_quota = [ns for ns in ns_list if not run_cmd(f"quotas en {ns}", ["oc", "get", "resourcequota", "-n", ns])]
     cache_resultados["quota"] = sin_quota
     ns_quota_total.set(len(sin_quota))
     for ns in sin_quota:
@@ -136,6 +92,18 @@ def actualizar_metricas():
 
     Timer(60, actualizar_metricas).start()
 
+def create_app(config_path="config.json"):
+    global subnet_cidr, excluir_ns_patterns, cache_resultados
+
+    with open(config_path) as f:
+        config = json.load(f)
+
+    subnet_cidr = config.get("subnet", "192.168.1.0/24")
+    excluir_ns_patterns = config.get("exclude_namespaces", [])
+    cache_resultados = {"np": [], "crashloop": [], "quota": []}
+    return app
+
 if __name__ == "__main__":
+    create_app()
     actualizar_metricas()
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)), debug=debug_mode, use_reloader=debug_mode)
