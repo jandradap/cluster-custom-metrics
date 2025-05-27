@@ -1,3 +1,4 @@
+
 import os
 import subprocess
 import ipaddress
@@ -17,15 +18,12 @@ app = Flask(__name__, static_folder='static', template_folder='templates')
 
 subnet_cidr = "192.168.1.0/24"
 excluir_ns_patterns = []
-cache_resultados = {"np": [], "crashloop": [], "quota": []}
+cache_resultados = {"np": [], "quota": []}
 
-# Métricas Prometheus
 egressip_total = Gauge('egressip_total', 'Total de IPs disponibles en la VLAN', registry=registry)
-egresip_uso = Gauge('egressip_uso', 'IPs en uso (egressips + nodos)', registry=registry)
+egresip_uso = Gauge('egresip_uso', 'IPs en uso (egressips + nodos)', registry=registry)
 ns_sin_np_total = Gauge('namespaces_sin_networkpolicy_total', 'Total de namespaces sin NetworkPolicy', registry=registry)
 ns_sin_np_label = Gauge('namespace_sin_networkpolicy', 'Namespace sin NetworkPolicy', ['namespace'], registry=registry)
-ns_crashloop_total = Gauge('namespaces_con_pods_crashloop_total', 'Total de namespaces con pods en CrashLoopBackOff', registry=registry)
-ns_crashloop_label = Gauge('namespace_crashloop', 'Namespace con pods en CrashLoopBackOff', ['namespace'], registry=registry)
 ns_quota_total = Gauge('namespaces_sin_resourcequota_total', 'Total de namespaces sin ResourceQuotas', registry=registry)
 ns_quota_label = Gauge('namespace_sin_quota', 'Namespace sin ResourceQuota', ['namespace'], registry=registry)
 
@@ -35,13 +33,11 @@ def excluir_ns(ns):
 @app.route("/")
 def home():
     total_ips = len(list(ipaddress.ip_network(subnet_cidr).hosts()))
-    used = len(cache_resultados["np"]) + len(cache_resultados["crashloop"])
+    used = len(cache_resultados["np"])
     libres = total_ips - used
     pie_data = f"{used},{libres},{total_ips}"
     return render_template("home.html", subnet=subnet_cidr, pie_data=pie_data,
-                           np=cache_resultados["np"],
-                           crashloop=cache_resultados["crashloop"],
-                           quota=cache_resultados["quota"])
+                           np=cache_resultados["np"], quota=cache_resultados["quota"])
 
 @app.route("/metrics")
 def metrics():
@@ -54,20 +50,21 @@ def actualizar_metricas():
         try:
             logging.debug(f"➡️ Ejecutando: {' '.join(cmd)}")
             result = subprocess.check_output(cmd, text=True)
-            logging.debug(f"✅ Resultado {desc}:\n{result.strip()}")
+            logging.debug(f"✅ Resultado {desc}:
+{result.strip()}")
             return result.strip().splitlines()
         except Exception as e:
             logging.warning(f"❌ Error en {desc}: {e}")
             return []
 
-    egress = run_cmd("egressip", ["oc", "get", "egressip", "-A", "-o", "jsonpath={range .items[*]}{.status.assignedIP}\\n{end}"])
+    egress = run_cmd("egressip", ["oc", "get", "egressip", "-A", "-o", "jsonpath={range .items[*]}{.status.assignedIP}\n{end}"])
     nodes = run_cmd("nodos", ["oc", "get", "nodes", "-o", "name"])
     used = len(egress) + len(nodes)
     total = len(list(ipaddress.ip_network(subnet_cidr).hosts()))
     egressip_total.set(total)
     egresip_uso.set(used)
 
-    ns_list = run_cmd("namespaces", ["oc", "get", "ns", "-o", "jsonpath={range .items[*]}{.metadata.name}\\n{end}"])
+    ns_list = run_cmd("namespaces", ["oc", "get", "ns", "-o", "jsonpath={range .items[*]}{.metadata.name}\n{end}"])
     ns_list = [ns for ns in ns_list if not excluir_ns(ns)]
 
     sin_np = [ns for ns in ns_list if not run_cmd(f"networkpolicy en {ns}", ["oc", "get", "networkpolicy", "-n", ns])]
@@ -75,16 +72,6 @@ def actualizar_metricas():
     ns_sin_np_total.set(len(sin_np))
     for ns in sin_np:
         ns_sin_np_label.labels(namespace=ns).set(1)
-
-    crashloop = []
-    for ns in ns_list:
-        pods = run_cmd(f"pods en {ns}", ["oc", "get", "pods", "-n", ns, "--no-headers"])
-        if any("CrashLoopBackOff" in p for p in pods):
-            crashloop.append(ns)
-    cache_resultados["crashloop"] = crashloop
-    ns_crashloop_total.set(len(crashloop))
-    for ns in crashloop:
-        ns_crashloop_label.labels(namespace=ns).set(1)
 
     sin_quota = [ns for ns in ns_list if not run_cmd(f"quotas en {ns}", ["oc", "get", "resourcequota", "-n", ns])]
     cache_resultados["quota"] = sin_quota
@@ -102,7 +89,7 @@ def create_app(config_path=os.getenv("CONFIG_PATH", "config.json")):
 
     subnet_cidr = config.get("subnet", "192.168.1.0/24")
     excluir_ns_patterns = config.get("exclude_namespaces", [])
-    cache_resultados = {"np": [], "crashloop": [], "quota": []}
+    cache_resultados = {"np": [], "quota": []}
     return app
 
 if __name__ == "__main__":
