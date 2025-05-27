@@ -29,4 +29,4 @@ def test_metrics(mock_check_output, client):
 def test_home(client):
     response = client.get("/")
     assert response.status_code == 200
-    assert b"MÃ©tricas EgressIP" in response.data
+    assert "Métricas EgressIP" in response.data.decode("utf-8")
