@@ -91,7 +91,7 @@ def actualizar_metricas():
 
     Timer(60, actualizar_metricas).start()
 
-def create_app(config_path="config.json"):
+def create_app(config_path=os.getenv("CONFIG_PATH", "config.json")):
     global subnet_cidr, excluir_ns_patterns, cache_resultados
 
     with open(config_path) as f:
