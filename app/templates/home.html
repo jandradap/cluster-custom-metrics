@@ -1,0 +1,41 @@
+
+<!DOCTYPE html>
+<html><head><title>Métricas EgressIP</title>
+<script src="/static/chart.min.js"></script>
+<meta http-equiv="refresh" content="30">
+<style>
+  body { font-family: sans-serif; background: #f9f9f9; padding: 2em; }
+  h3 { margin-top: 1.5em; }
+  ul { padding: 1em; background: #fff; border-radius: 8px; }
+</style>
+</head><body>
+<h2>Resumen IPs en red {{ subnet }}</h2>
+<canvas id="pieChart" width="200" height="200"></canvas>
+<script>
+  new Chart(document.getElementById('pieChart').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Usadas (egress+nodos)', 'Disponibles', 'Total IPs'],
+      datasets: [{
+        data: [{{ pie_data }}],
+        backgroundColor: ['#cc0000', '#7dc243', '#bbb']
+      }]
+    },
+    options: {
+      plugins: {
+        legend: { position: 'bottom' }
+      },
+      cutout: '60%'
+    }
+  });
+</script>
+
+<h3>Namespaces sin NetworkPolicy</h3>
+{% if np %}<ul>{% for ns in np %}<li>{{ ns }}</li>{% endfor %}</ul>{% else %}<p><i>No se encontraron namespaces sin políticas.</i></p>{% endif %}
+
+<h3>Namespaces con CrashLoopBackOff</h3>
+{% if crashloop %}<ul>{% for ns in crashloop %}<li>{{ ns }}</li>{% endfor %}</ul>{% else %}<p><i>No se encontraron pods en CrashLoop.</i></p>{% endif %}
+
+<h3>Namespaces sin ResourceQuota</h3>
+{% if quota %}<ul>{% for ns in quota %}<li>{{ ns }}</li>{% endfor %}</ul>{% else %}<p><i>No se encontraron namespaces sin quotas.</i></p>{% endif %}
+</body></html>

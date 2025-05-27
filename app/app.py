@@ -1,4 +1,3 @@
-
 import os
 import subprocess
 import ipaddress
@@ -6,7 +5,7 @@ import json
 import logging
 import fnmatch
 from threading import Timer
-from flask import Flask, Response, render_template_string
+from flask import Flask, Response, render_template
 from prometheus_client import Gauge, generate_latest, CollectorRegistry
 
 registry = CollectorRegistry()
@@ -14,12 +13,13 @@ debug_mode = os.getenv("FLASK_DEBUG", "false").lower() == "true"
 log_level = logging.DEBUG if debug_mode else logging.INFO
 logging.basicConfig(level=log_level, format='%(asctime)s - %(levelname)s - %(message)s')
 
-app = Flask(__name__, static_folder='static')
+app = Flask(__name__, static_folder='static', template_folder='templates')
 
 subnet_cidr = "192.168.1.0/24"
 excluir_ns_patterns = []
 cache_resultados = {"np": [], "crashloop": [], "quota": []}
 
+# Métricas Prometheus
 egressip_total = Gauge('egressip_total', 'Total de IPs disponibles en la VLAN', registry=registry)
 egresip_uso = Gauge('egressip_uso', 'IPs en uso (egressips + nodos)', registry=registry)
 ns_sin_np_total = Gauge('namespaces_sin_networkpolicy_total', 'Total de namespaces sin NetworkPolicy', registry=registry)
@@ -38,7 +38,10 @@ def home():
     used = len(cache_resultados["np"]) + len(cache_resultados["crashloop"])
     libres = total_ips - used
     pie_data = f"{used},{libres},{total_ips}"
-    return render_template_string("Métricas EgressIP OK", subnet=subnet_cidr, pie_data=pie_data, np=cache_resultados["np"], crashloop=cache_resultados["crashloop"], quota=cache_resultados["quota"])
+    return render_template("home.html", subnet=subnet_cidr, pie_data=pie_data,
+                           np=cache_resultados["np"],
+                           crashloop=cache_resultados["crashloop"],
+                           quota=cache_resultados["quota"])
 
 @app.route("/metrics")
 def metrics():
@@ -57,14 +60,14 @@ def actualizar_metricas():
             logging.warning(f"❌ Error en {desc}: {e}")
             return []
 
-    egress = run_cmd("egressip", ["oc", "get", "egressip", "-A", "-o", "jsonpath={range .items[*]}{.status.assignedIP}\n{end}"])
+    egress = run_cmd("egressip", ["oc", "get", "egressip", "-A", "-o", "jsonpath={range .items[*]}{.status.assignedIP}\\n{end}"])
     nodes = run_cmd("nodos", ["oc", "get", "nodes", "-o", "name"])
     used = len(egress) + len(nodes)
     total = len(list(ipaddress.ip_network(subnet_cidr).hosts()))
     egressip_total.set(total)
     egresip_uso.set(used)
 
-    ns_list = run_cmd("namespaces", ["oc", "get", "ns", "-o", "jsonpath={range .items[*]}{.metadata.name}\n{end}"])
+    ns_list = run_cmd("namespaces", ["oc", "get", "ns", "-o", "jsonpath={range .items[*]}{.metadata.name}\\n{end}"])
     ns_list = [ns for ns in ns_list if not excluir_ns(ns)]
 
     sin_np = [ns for ns in ns_list if not run_cmd(f"networkpolicy en {ns}", ["oc", "get", "networkpolicy", "-n", ns])]
