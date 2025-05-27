@@ -1,6 +1,9 @@
 import pytest
+import os
 from unittest import mock
 from app import create_app
+
+os.environ["CONFIG_PATH"] = "tests/config_test.json"
 
 @pytest.fixture
 def client():
