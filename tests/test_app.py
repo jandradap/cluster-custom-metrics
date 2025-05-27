@@ -1,21 +1,25 @@
 import pytest
-from unittest.mock import patch
-from app import app
+from unittest import mock
+from app import create_app
 
 @pytest.fixture
 def client():
+    # Creamos la app con un archivo de configuración alternativo
+    app = create_app("tests/config_test.json")
     app.config['TESTING'] = True
     return app.test_client()
 
-@patch("subprocess.check_output")
-@patch("subprocess.run")
+@mock.patch("subprocess.check_output")
+@mock.patch("subprocess.run")
 def test_metrics(mock_run, mock_check_output, client):
+    # Simulamos salidas de los comandos `oc`
     mock_check_output.side_effect = [
-        b"node1\nnode2",  # oc get nodes
-        b"default\nkube-system\nns1",  # oc get ns
-        b"",  # oc get networkpolicy
-        b"pod1 0/1 CrashLoopBackOff",  # oc get pods
-        b""   # oc get resourcequota
+        b"192.168.1.100\n192.168.1.101",  # egressip
+        b"node1\nnode2",                  # nodes
+        b"default\nkube-system\nns1",     # namespaces
+        b"",                              # networkpolicy (none)
+        b"pod1 0/1 CrashLoopBackOff",     # pod con crash
+        b""                               # resourcequota (none)
     ]
     mock_run.return_value.stdout = "192.168.1.100\n192.168.1.101\n"
 
