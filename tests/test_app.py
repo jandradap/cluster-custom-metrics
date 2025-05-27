@@ -5,7 +5,7 @@ from app import create_app
 @pytest.fixture
 def client():
     # Creamos la app con un archivo de configuración alternativo
-    app = create_app("config_test.json")
+    app = create_app("./config_test.json")
     app.config['TESTING'] = True
     return app.test_client()
 
