@@ -64,6 +64,8 @@ This component is deployed as a Kubernetes Deployment and configured with a Conf
    oc get pods -n cluster-monitoring
    ```
 
+4. User-workload-monitoring and grafana
+
 ## Configuration
 
 Modify the `configmap.yaml` to change or add Python scripts that collect metrics. Each script must define and expose Prometheus metrics using `prometheus_client`.
