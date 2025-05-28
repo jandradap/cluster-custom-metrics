@@ -6,6 +6,7 @@ metadata:
   namespace: cluster-monitoring
   labels:
     grafana_dashboard: "1"
+    app: grafana
 data:
   cluster-custom-metrics.json: |
     {
@@ -34,7 +35,7 @@ data:
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
+            "uid": "fa5beda3-eb0b-4917-b233-2b047e49b64d"
           },
           "fieldConfig": {
             "defaults": {
@@ -86,7 +87,7 @@ data:
           "targets": [
             {
               "editorMode": "code",
-              "expr": "ips_vlan_total - nodesips_uso - egressips_uso",
+              "expr": "ip_pool_total - nodesips_used - egressips_used",
               "instant": false,
               "interval": "",
               "legendFormat": "VLAN Total IPs",
@@ -99,7 +100,7 @@ data:
                 "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
               },
               "editorMode": "code",
-              "expr": "nodesips_uso",
+              "expr": "nodesips_used",
               "hide": false,
               "instant": false,
               "legendFormat": "Nodes IPs",
@@ -112,7 +113,7 @@ data:
                 "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
               },
               "editorMode": "code",
-              "expr": "egressips_uso",
+              "expr": "egressips_used",
               "hide": false,
               "instant": false,
               "legendFormat": "EgressIP",
@@ -126,7 +127,7 @@ data:
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
+            "uid": "fa5beda3-eb0b-4917-b233-2b047e49b64d"
           },
           "fieldConfig": {
             "defaults": {
@@ -178,7 +179,9 @@ data:
                 "type": "prometheus",
                 "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
               },
-              "expr": "namespaces_sin_networkpolicy_total",
+              "editorMode": "code",
+              "expr": "namespaces_without_networkpolicy_total",
+              "range": true,
               "refId": "A"
             }
           ],
@@ -188,7 +191,7 @@ data:
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
+            "uid": "fa5beda3-eb0b-4917-b233-2b047e49b64d"
           },
           "fieldConfig": {
             "defaults": {
@@ -240,7 +243,9 @@ data:
                 "type": "prometheus",
                 "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
               },
-              "expr": "namespaces_sin_resourcequota_total",
+              "editorMode": "code",
+              "expr": "namespaces_without_resourcequota_total",
+              "range": true,
               "refId": "A"
             }
           ],
@@ -250,7 +255,7 @@ data:
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
+            "uid": "fa5beda3-eb0b-4917-b233-2b047e49b64d"
           },
           "fieldConfig": {
             "defaults": {
@@ -309,7 +314,7 @@ data:
                 "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
               },
               "editorMode": "code",
-              "expr": "namespace_sin_networkpolicy",
+              "expr": "namespace_without_networkpolicy",
               "interval": "",
               "legendFormat": "Namespace",
               "range": true,
@@ -324,7 +329,7 @@ data:
                 "keepLabels": [
                   "exported_namespace"
                 ],
-                "mode": "columns"
+                "mode": "rows"
               }
             },
             {
@@ -336,14 +341,17 @@ data:
               "options": {
                 "excludeByName": {
                   "Time": true,
-                  "namespace_sin_networkpolicy": true
+                  "exported_namespace": false,
+                  "label": true,
+                  "namespace_sin_networkpolicy": true,
+                  "namespace_without_networkpolicy": true
                 },
                 "includeByName": {},
                 "indexByName": {},
                 "renameByName": {
                   "exported_namespace": "Namespace",
-                  "label": "Namespace",
-                  "value": ""
+                  "label": "",
+                  "value": "Namespace"
                 }
               }
             }
@@ -353,7 +361,7 @@ data:
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
+            "uid": "fa5beda3-eb0b-4917-b233-2b047e49b64d"
           },
           "fieldConfig": {
             "defaults": {
@@ -407,7 +415,9 @@ data:
                 "type": "prometheus",
                 "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
               },
-              "expr": "namespace_sin_quota",
+              "editorMode": "code",
+              "expr": "namespace_without_resourcequota",
+              "range": true,
               "refId": "A"
             }
           ],
@@ -456,13 +466,13 @@ data:
         "list": []
       },
       "time": {
-        "from": "now-6h",
+        "from": "now-5m",
         "to": "now"
       },
       "timepicker": {},
       "timezone": "browser",
       "title": "Cluster Custom Metrics",
       "uid": "egress-summary-dashboard",
-      "version": 25,
+      "version": 13,
       "weekStart": ""
     }

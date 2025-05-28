@@ -1,4 +1,4 @@
 {
     "subnet": "10.10.10.0/24",
-    "exclude_namespaces": ["openshift-*", "kube-*", "default"]
+    "exclude_namespaces": ["openshift*", "kube-*", "default"]
 }
