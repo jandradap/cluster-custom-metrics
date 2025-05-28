@@ -1,468 +1,467 @@
-
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: grafana-dashboard-egress
-  namespace: cluster-monitoring
-  labels:
-    grafana_dashboard: "1"
-data:
-  cluster-custom-metrics.json: |
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 1,
+  "links": [],
+  "panels": [
     {
-      "annotations": {
-        "list": [
-          {
-            "builtIn": 1,
-            "datasource": {
-              "type": "grafana",
-              "uid": "-- Grafana --"
-            },
-            "enable": true,
-            "hide": true,
-            "iconColor": "rgba(0, 211, 255, 1)",
-            "name": "Annotations & Alerts",
-            "type": "dashboard"
-          }
-        ]
+      "datasource": {
+        "type": "prometheus",
+        "uid": "fa5beda3-eb0b-4917-b233-2b047e49b64d"
       },
-      "editable": true,
-      "fiscalYearStartMonth": 0,
-      "graphTooltip": 0,
-      "id": 1,
-      "links": [],
-      "panels": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
           },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "mappings": []
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 0
-          },
-          "id": 8,
-          "options": {
-            "displayLabels": [
-              "value",
-              "name"
-            ],
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "pieType": "pie",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "tooltip": {
-              "mode": "single",
-              "sort": "none"
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
             }
           },
-          "pluginVersion": "11.3.0",
-          "targets": [
-            {
-              "editorMode": "code",
-              "expr": "ips_vlan_total - nodesips_uso - egressips_uso",
-              "instant": false,
-              "interval": "",
-              "legendFormat": "VLAN Total IPs",
-              "range": true,
-              "refId": "A"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
-              },
-              "editorMode": "code",
-              "expr": "nodesips_uso",
-              "hide": false,
-              "instant": false,
-              "legendFormat": "Nodes IPs",
-              "range": true,
-              "refId": "B"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
-              },
-              "editorMode": "code",
-              "expr": "egressips_uso",
-              "hide": false,
-              "instant": false,
-              "legendFormat": "EgressIP",
-              "range": true,
-              "refId": "C"
-            }
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 8,
+      "options": {
+        "displayLabels": [
+          "value",
+          "name"
+        ],
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
           ],
-          "title": "Summary of network IPs",
-          "type": "piechart"
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.3.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "ip_pool_total - nodesips_used - egressips_used",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "VLAN Total IPs",
+          "range": true,
+          "refId": "A"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
           },
-          "fieldConfig": {
-            "defaults": {
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 4,
-            "w": 6,
-            "x": 0,
-            "y": 8
-          },
-          "id": 4,
-          "options": {
-            "colorMode": "value",
-            "graphMode": "area",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "percentChangeColorMode": "standard",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "showPercentChange": false,
-            "textMode": "auto",
-            "wideLayout": true
-          },
-          "pluginVersion": "11.3.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
-              },
-              "expr": "namespaces_sin_networkpolicy_total",
-              "refId": "A"
-            }
-          ],
-          "title": "Namespaces without NetworkPolicy",
-          "type": "stat"
+          "editorMode": "code",
+          "expr": "nodesips_used",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "Nodes IPs",
+          "range": true,
+          "refId": "B"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
           },
-          "fieldConfig": {
-            "defaults": {
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 4,
-            "w": 6,
-            "x": 6,
-            "y": 8
-          },
-          "id": 5,
-          "options": {
-            "colorMode": "value",
-            "graphMode": "area",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "percentChangeColorMode": "standard",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "showPercentChange": false,
-            "textMode": "auto",
-            "wideLayout": true
-          },
-          "pluginVersion": "11.3.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
-              },
-              "expr": "namespaces_sin_resourcequota_total",
-              "refId": "A"
-            }
-          ],
-          "title": "Namespaces without ResourceQuota",
-          "type": "stat"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "custom": {
-                "align": "auto",
-                "cellOptions": {
-                  "type": "auto"
-                },
-                "inspect": false
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 5,
-            "w": 6,
-            "x": 0,
-            "y": 12
-          },
-          "id": 6,
-          "options": {
-            "cellHeight": "sm",
-            "footer": {
-              "countRows": false,
-              "fields": "",
-              "reducer": [
-                "sum"
-              ],
-              "show": false
-            },
-            "frameIndex": 2,
-            "showHeader": true
-          },
-          "pluginVersion": "11.3.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
-              },
-              "editorMode": "code",
-              "expr": "namespace_sin_networkpolicy",
-              "interval": "",
-              "legendFormat": "Namespace",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Namespaces without NetworkPolicy",
-          "transformations": [
-            {
-              "id": "labelsToFields",
-              "options": {
-                "keepLabels": [
-                  "exported_namespace"
-                ],
-                "mode": "columns"
-              }
-            },
-            {
-              "id": "merge",
-              "options": {}
-            },
-            {
-              "id": "organize",
-              "options": {
-                "excludeByName": {
-                  "Time": true,
-                  "namespace_sin_networkpolicy": true
-                },
-                "includeByName": {},
-                "indexByName": {},
-                "renameByName": {
-                  "exported_namespace": "Namespace",
-                  "label": "Namespace",
-                  "value": ""
-                }
-              }
-            }
-          ],
-          "type": "table"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "custom": {
-                "align": "auto",
-                "cellOptions": {
-                  "type": "auto"
-                },
-                "inspect": false
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 5,
-            "w": 6,
-            "x": 6,
-            "y": 12
-          },
-          "id": 7,
-          "options": {
-            "cellHeight": "sm",
-            "footer": {
-              "countRows": false,
-              "fields": "",
-              "reducer": [
-                "sum"
-              ],
-              "show": false
-            },
-            "showHeader": true
-          },
-          "pluginVersion": "11.3.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
-              },
-              "expr": "namespace_sin_quota",
-              "refId": "A"
-            }
-          ],
-          "title": "Namespaces without ResourceQuota",
-          "transformations": [
-            {
-              "id": "labelsToFields",
-              "options": {
-                "keepLabels": [
-                  "exported_namespace"
-                ],
-                "mode": "rows"
-              }
-            },
-            {
-              "id": "merge",
-              "options": {}
-            },
-            {
-              "id": "organize",
-              "options": {
-                "excludeByName": {
-                  "label": true
-                },
-                "includeByName": {},
-                "indexByName": {},
-                "renameByName": {
-                  "label": "",
-                  "value": "Namespace"
-                }
-              }
-            }
-          ],
-          "type": "table"
+          "editorMode": "code",
+          "expr": "egressips_used",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "EgressIP",
+          "range": true,
+          "refId": "C"
         }
       ],
-      "preload": false,
-      "refresh": "30s",
-      "schemaVersion": 40,
-      "tags": [
-        "openshift",
-        "egress",
-        "monitoring"
+      "title": "Summary of network IPs",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "fa5beda3-eb0b-4917-b233-2b047e49b64d"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 8
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
+          },
+          "editorMode": "code",
+          "expr": "namespaces_without_networkpolicy_total",
+          "range": true,
+          "refId": "A"
+        }
       ],
-      "templating": {
-        "list": []
+      "title": "Namespaces without NetworkPolicy",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "fa5beda3-eb0b-4917-b233-2b047e49b64d"
       },
-      "time": {
-        "from": "now-6h",
-        "to": "now"
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
       },
-      "timepicker": {},
-      "timezone": "browser",
-      "title": "Cluster Custom Metrics",
-      "uid": "egress-summary-dashboard",
-      "version": 25,
-      "weekStart": ""
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 8
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
+          },
+          "editorMode": "code",
+          "expr": "namespaces_without_resourcequota_total",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Namespaces without ResourceQuota",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "fa5beda3-eb0b-4917-b233-2b047e49b64d"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 12
+      },
+      "id": 6,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 2,
+        "showHeader": true
+      },
+      "pluginVersion": "11.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
+          },
+          "editorMode": "code",
+          "expr": "namespace_without_networkpolicy",
+          "interval": "",
+          "legendFormat": "Namespace",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Namespaces without NetworkPolicy",
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "keepLabels": [
+              "exported_namespace"
+            ],
+            "mode": "rows"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "exported_namespace": false,
+              "label": true,
+              "namespace_sin_networkpolicy": true,
+              "namespace_without_networkpolicy": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "exported_namespace": "Namespace",
+              "label": "",
+              "value": "Namespace"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "fa5beda3-eb0b-4917-b233-2b047e49b64d"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 12
+      },
+      "id": 7,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "11.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
+          },
+          "editorMode": "code",
+          "expr": "namespace_without_resourcequota",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Namespaces without ResourceQuota",
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "keepLabels": [
+              "exported_namespace"
+            ],
+            "mode": "rows"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "label": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "label": "",
+              "value": "Namespace"
+            }
+          }
+        }
+      ],
+      "type": "table"
     }
+  ],
+  "preload": false,
+  "refresh": "30s",
+  "schemaVersion": 40,
+  "tags": [
+    "openshift",
+    "egress",
+    "monitoring"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-5m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Cluster Custom Metrics",
+  "uid": "egress-summary-dashboard",
+  "version": 13,
+  "weekStart": ""
+}

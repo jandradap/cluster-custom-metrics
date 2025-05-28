@@ -114,6 +114,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: grafana-reader-token
+  namespace: openshift-monitoring
   annotations:
     kubernetes.io/service-account.name: grafana-reader
 type: kubernetes.io/service-account-token
