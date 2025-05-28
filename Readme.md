@@ -14,7 +14,7 @@
 
 ## Overview
 
-**Cluster Custom Metrics** is a Kubernetes/OpenShift monitoring component designed to export and expose custom metrics not available by default in the Prometheus stack. It allows teams to monitor specific cluster behaviors and configurations such as unused namespaces, IP availability, or missing resource quotas.
+**Cluster Custom Metrics** is a Kubernetes/OpenShift monitoring component designed to export and expose custom metrics not available by default in the Prometheus stack (user-workload-monitoring). It allows teams to monitor specific cluster behaviors and configurations such as unused namespaces, IP availability, or missing resource quotas.
 
 ![Dashboard](images/dashboard.png)
 
@@ -35,7 +35,7 @@ This component is deployed as a Kubernetes Deployment and configured with a Conf
 
 ## Prerequisites
 
-* Kubernetes or OpenShift cluster
+* Kubernetes or OpenShift cluster (recomended)
 * Prometheus Operator installed
 * Access to create namespaces, configmaps, and deployments
 
@@ -46,7 +46,6 @@ This component is deployed as a Kubernetes Deployment and configured with a Conf
    ```bash
    git clone https://github.com/jandradap/cluster-custom-metrics.git
    cd cluster-custom-metrics
-   git checkout develop
    ```
 
 2. Apply required manifests:

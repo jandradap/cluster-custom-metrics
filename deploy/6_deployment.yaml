@@ -41,7 +41,7 @@ spec:
               readOnly: true
               mountPath: /etc/config
           terminationMessagePolicy: File
-          image: 'quay.io/jandradap/cluster-custom-metrics@sha256:c82fd2670917d2bc6624584d415a99e53a0e5553d2c5a782f93e7bd3ff72b79f'
+          image: 'quay.io/jandradap/cluster-custom-metrics:0.0.1'
       serviceAccount: metrics-reader
       volumes:
         - name: config-volume
