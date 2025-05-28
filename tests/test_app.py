@@ -15,17 +15,17 @@ def test_metrics(mock_check_output, client):
     mock_check_output.side_effect = [
         b"192.168.1.100\n192.168.1.101",  # egressip
         b"node1\nnode2",                  # nodes
-        b"default\nkube-system\nns1",    # namespaces
-        b"",                               # networkpolicy
-        b"pod1 0/1 CrashLoopBackOff",      # pods
-        b""                                # resourcequota
+        b"default\nkube-system\nns1",     # namespaces
+        b"",                              # networkpolicy
+        b"pod1 0/1 CrashLoopBackOff",     # pods
+        b""                               # resourcequota
     ]
 
     response = client.get("/metrics")
     assert response.status_code == 200
     assert b"ip_pool_total" in response.data
-    assert b'egress_ips_assigned' in response.data
-    assert b'nodes_total' in response.data
+    assert b'egressips_used' in response.data
+    assert b'nodesips_used' in response.data
 
 def test_home(client):
     response = client.get("/")
