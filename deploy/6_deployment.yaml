@@ -1,0 +1,58 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: cluster-custom-metrics
+  namespace: cluster-monitoring
+  labels:
+    app: cluster-custom-metrics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cluster-custom-metrics
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: cluster-custom-metrics
+    spec:
+      restartPolicy: Always
+      serviceAccountName: metrics-reader
+      schedulerName: default-scheduler
+      terminationGracePeriodSeconds: 30
+      securityContext: {}
+      containers:
+        - resources: {}
+          terminationMessagePath: /dev/termination-log
+          name: app
+          env:
+            - name: PORT
+              value: '8080'
+            - name: FLASK_DEBUG
+              value: 'true'
+            - name: CONFIG_PATH
+              value: /etc/config/config.json
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: config-volume
+              readOnly: true
+              mountPath: /etc/config
+          terminationMessagePolicy: File
+          image: 'quay.io/jandradap/cluster-custom-metrics@sha256:c82fd2670917d2bc6624584d415a99e53a0e5553d2c5a782f93e7bd3ff72b79f'
+      serviceAccount: metrics-reader
+      volumes:
+        - name: config-volume
+          configMap:
+            name: metrics-config
+            defaultMode: 420
+      dnsPolicy: ClusterFirst
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600

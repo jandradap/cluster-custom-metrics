@@ -1,0 +1,25 @@
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: prometheus-grafanadatasource
+  namespace: cluster-monitoring
+spec:
+  allowCrossNamespaceImport: false
+  datasource:
+    access: proxy
+    editable: true
+    secureJsonData:
+      httpHeaderValue1: Bearer XXXXXXX
+    name: LAB
+    url: 'https://thanos-querier-openshift-monitoring.apps.XXXXXXXXXXXXX'
+    jsonData:
+      httpHeaderName1: Authorization
+      tlsSkipVerify: true
+    basicAuth: false
+    isDefault: true
+    type: prometheus
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana-a
+  resyncPeriod: 20s

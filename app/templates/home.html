@@ -1,0 +1,125 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>EgressIP Metrics</title>
+  <script src="/static/chart.min.js"></script>
+  <meta http-equiv="refresh" content="120">
+  <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Red Hat Display', sans-serif;
+      background-color: #f3f3f3;
+      color: #111;
+      padding: 2rem;
+    }
+    h1, h2 {
+      color: #cc0000;
+    }
+    .container {
+      max-width: 960px;
+      margin: auto;
+      background: #fff;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    canvas {
+      display: block;
+      margin: auto;
+      max-width: 300px;
+    }
+    .section {
+      margin-top: 2rem;
+    }
+    ul {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.5rem;
+      padding-left: 0;
+      list-style: none;
+    }
+    li {
+      background: #e9e9e9;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 2rem;
+    }
+    table th, table td {
+      border: 1px solid #ddd;
+      padding: 0.6rem;
+      text-align: left;
+    }
+    table th {
+      background-color: #f7f7f7;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>EgressIP Metrics</h1>
+    <h2>Summary of network IPs {{ subnet }}</h2>
+    <canvas id="pieChart" width="300" height="300"></canvas>
+    <script>
+      new Chart(document.getElementById('pieChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Used (egress+nodes)', 'Available', 'Total IPs'],
+          datasets: [{
+            data: [{{ pie_data }}],
+            backgroundColor: ['#cc0000', '#7dc243', '#bbb']
+          }]
+        },
+        options: {
+          plugins: { legend: { position: 'bottom' } },
+          cutout: '65%'
+        }
+      });
+    </script>
+
+    <div class="section">
+      <h2>Detail of assigned IPs</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>IP</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in ips %}
+          <tr>
+            <td>{{ row.type }}</td>
+            <td>{{ row.ip }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>Namespaces without NetworkPolicy</h2>
+      {% if np %}
+      <ul>{% for ns in np %}<li>{{ ns }}</li>{% endfor %}</ul>
+      {% else %}
+      <p><i>No namespaces without networkpolicy were found.</i></p>
+      {% endif %}
+    </div>
+
+    <div class="section">
+      <h2>Namespaces without ResourceQuota</h2>
+      {% if quota %}
+      <ul>{% for ns in quota %}<li>{{ ns }}</li>{% endfor %}</ul>
+      {% else %}
+      <p><i>No namespaces without ResourceQuota were found..</i></p>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>

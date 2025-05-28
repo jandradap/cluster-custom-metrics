@@ -1,0 +1,10 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: cluster-monitoring
+  labels:
+    kubernetes.io/metadata.name: cluster-monitoring
+  annotations:
+    openshift.io/description: ''
+    openshift.io/display-name: cluster-monitoring
+    openshift.io/requester: admin
