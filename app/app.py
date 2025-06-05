@@ -18,6 +18,7 @@ app = Flask(__name__, static_folder='static', template_folder='templates')
 
 subnet_cidr = "192.168.1.0/24"
 exclude_ns_patterns = []
+feature_ns_exclusions = {}
 cache_results = {
     "np": [],
     "quota": [],
@@ -73,8 +74,11 @@ priv_sa_info = Gauge(
     'Workload using privileged service account and SCC',
     ['namespace', 'app', 'serviceaccount', 'scc'], registry=registry)
 
-def exclude_ns(ns):
-    return any(fnmatch.fnmatch(ns, pattern) for pattern in exclude_ns_patterns)
+def exclude_ns(ns, feature=None):
+    patterns = list(exclude_ns_patterns)
+    if feature and feature in feature_ns_exclusions:
+        patterns.extend(feature_ns_exclusions.get(feature, []))
+    return any(fnmatch.fnmatch(ns, p) for p in patterns)
 
 @app.route("/")
 def home():
@@ -151,15 +155,16 @@ def update_metrics():
     egressips_used.set(len(egress))
 
     ns_list = run_cmd("namespaces", ["oc", "get", "ns", "-o", "jsonpath={range .items[*]}{.metadata.name}\n{end}"])
-    ns_list = [ns for ns in ns_list if not exclude_ns(ns)]
 
-    without_np = [ns for ns in ns_list if not run_cmd(f"networkpolicy in {ns}", ["oc", "get", "networkpolicy", "-n", ns])]
+    ns_list_np = [ns for ns in ns_list if not exclude_ns(ns, "np")]
+    without_np = [ns for ns in ns_list_np if not run_cmd(f"networkpolicy in {ns}", ["oc", "get", "networkpolicy", "-n", ns])]
     cache_results["np"] = without_np
     ns_without_np_total.set(len(without_np))
     for ns in without_np:
         ns_without_np_label.labels(namespace=ns).set(1)
 
-    namespace_without_resourcequota = [ns for ns in ns_list if not run_cmd(f"quotas in {ns}", ["oc", "get", "resourcequota", "-n", ns])]
+    ns_list_quota = [ns for ns in ns_list if not exclude_ns(ns, "quota")]
+    namespace_without_resourcequota = [ns for ns in ns_list_quota if not run_cmd(f"quotas in {ns}", ["oc", "get", "resourcequota", "-n", ns])]
     cache_results["quota"] = namespace_without_resourcequota
     ns_quota_total.set(len(namespace_without_resourcequota))
     for ns in namespace_without_resourcequota:
@@ -170,7 +175,7 @@ def update_metrics():
     pvc_pending = []
     for pvc in pvc_data.get("items", []):
         ns = pvc["metadata"].get("namespace")
-        if exclude_ns(ns):
+        if exclude_ns(ns, "pvc_pending"):
             continue
         name = pvc["metadata"]["name"]
         phase = pvc.get("status", {}).get("phase", "").lower()
@@ -204,13 +209,11 @@ def update_metrics():
     def process_workloads(items, kind):
         for it in items.get("items", []):
             ns = it["metadata"].get("namespace")
-            if exclude_ns(ns):
-                continue
             name = it["metadata"]["name"]
             replicas = it.get("spec", {}).get("replicas", 1)
             sa = it.get("spec", {}).get("template", {}).get("spec", {}).get("serviceAccountName", "default")
             containers = it.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
-            if replicas == 1:
+            if replicas == 1 and not exclude_ns(ns, "single_replica"):
                 single_replica.append({"namespace": ns, "name": name, "kind": kind})
             missing = False
             for c in containers:
@@ -218,9 +221,10 @@ def update_metrics():
                 if not res.get("requests") or not res.get("limits"):
                     missing = True
                     break
-            if missing:
+            if missing and not exclude_ns(ns, "no_resources"):
                 no_resources.append({"namespace": ns, "name": name, "kind": kind})
-            workload_sa.append({"namespace": ns, "name": name, "sa": sa, "kind": kind})
+            if not exclude_ns(ns, "priv_sa"):
+                workload_sa.append({"namespace": ns, "name": name, "sa": sa, "kind": kind})
 
     process_workloads(deploys, "deployment")
     process_workloads(sts, "statefulset")
@@ -266,13 +270,14 @@ def update_metrics():
     Timer(60, update_metrics).start()
 
 def create_app(config_path=os.getenv("CONFIG_PATH", "config.json")):
-    global subnet_cidr, exclude_ns_patterns, cache_results
+    global subnet_cidr, exclude_ns_patterns, feature_ns_exclusions, cache_results
 
     with open(config_path) as f:
         config = json.load(f)
 
     subnet_cidr = config.get("subnet", "192.168.1.0/24")
     exclude_ns_patterns = config.get("exclude_namespaces", [])
+    feature_ns_exclusions = config.get("feature_exclusions", {})
     cache_results.update({
         "np": [],
         "quota": [],

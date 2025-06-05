@@ -1,4 +1,13 @@
 {
     "subnet": "10.10.10.0/24",
-    "exclude_namespaces": ["openshift*", "kube-*", "default"]
+    "exclude_namespaces": ["openshift*", "kube-*", "default"],
+    "feature_exclusions": {
+        "np": [],
+        "quota": [],
+        "pv_unbound": [],
+        "pvc_pending": [],
+        "single_replica": [],
+        "no_resources": [],
+        "priv_sa": []
+    }
 }
