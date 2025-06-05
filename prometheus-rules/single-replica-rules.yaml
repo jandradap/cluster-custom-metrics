@@ -1,0 +1,17 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: single-replica-rules
+  namespace: cluster-monitoring
+spec:
+  groups:
+  - name: single-replica
+    rules:
+    - alert: SingleReplicaWorkload
+      expr: workloads_single_replica_total > 0
+      for: 15m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Single replica workload detected"
+        description: "Deployments or StatefulSets are running with only one replica."
