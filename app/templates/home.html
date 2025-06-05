@@ -106,7 +106,14 @@
     <div class="section">
       <h2>Namespaces without NetworkPolicy</h2>
       {% if np %}
-      <ul>{% for ns in np %}<li>{{ ns }}</li>{% endfor %}</ul>
+      <table>
+        <thead><tr><th>Namespace</th></tr></thead>
+        <tbody>
+          {% for ns in np %}
+          <tr><td>{{ ns }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
       {% else %}
       <p><i>No namespaces without networkpolicy were found.</i></p>
       {% endif %}
@@ -115,9 +122,108 @@
     <div class="section">
       <h2>Namespaces without ResourceQuota</h2>
       {% if quota %}
-      <ul>{% for ns in quota %}<li>{{ ns }}</li>{% endfor %}</ul>
+      <table>
+        <thead><tr><th>Namespace</th></tr></thead>
+        <tbody>
+          {% for ns in quota %}
+          <tr><td>{{ ns }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
       {% else %}
       <p><i>No namespaces without ResourceQuota were found..</i></p>
+      {% endif %}
+    </div>
+
+    <div class="section">
+      <h2>PV Unbound</h2>
+      {% if pv_unbound %}
+      <table>
+        <thead><tr><th>PersistentVolume</th></tr></thead>
+        <tbody>
+          {% for pv in pv_unbound %}
+          <tr><td>{{ pv }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p><i>No unbound PVs were found.</i></p>
+      {% endif %}
+    </div>
+
+    <div class="section">
+      <h2>PVCs Pending</h2>
+      {% if pvc_pending %}
+      <table>
+        <thead><tr><th>Namespace</th><th>PVC</th></tr></thead>
+        <tbody>
+          {% for pvc in pvc_pending %}
+          <tr><td>{{ pvc.namespace }}</td><td>{{ pvc.name }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p><i>No pending PVCs were found.</i></p>
+      {% endif %}
+    </div>
+
+    <div class="section">
+      <h2>Workloads with single replica</h2>
+      {% if single_replica %}
+      <table>
+        <thead><tr><th>Namespace</th><th>App</th><th>Kind</th></tr></thead>
+        <tbody>
+          {% for w in single_replica %}
+          <tr><td>{{ w.namespace }}</td><td>{{ w.name }}</td><td>{{ w.kind }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p><i>No single replica workloads were found.</i></p>
+      {% endif %}
+    </div>
+
+    <div class="section">
+      <h2>Workloads without resources</h2>
+      {% if no_resources %}
+      <table>
+        <thead><tr><th>Namespace</th><th>App</th><th>Kind</th></tr></thead>
+        <tbody>
+          {% for w in no_resources %}
+          <tr><td>{{ w.namespace }}</td><td>{{ w.name }}</td><td>{{ w.kind }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p><i>All workloads have resource requests and limits.</i></p>
+      {% endif %}
+    </div>
+
+    <div class="section">
+      <h2>Privileged ServiceAccounts</h2>
+      {% if priv_sa %}
+      <table>
+        <thead>
+          <tr>
+            <th>Namespace</th>
+            <th>App</th>
+            <th>ServiceAccount</th>
+            <th>SCC</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sa in priv_sa %}
+          <tr>
+            <td>{{ sa.namespace }}</td>
+            <td>{{ sa.name }}</td>
+            <td>{{ sa.sa }}</td>
+            <td>{{ sa.scc }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p><i>No workloads using privileged service accounts were found.</i></p>
       {% endif %}
     </div>
   </div>

@@ -12,13 +12,22 @@ def client():
 
 @mock.patch("subprocess.check_output")
 def test_metrics(mock_check_output, client):
+    pvc_json = b'{"items":[{"metadata":{"namespace":"ns1","name":"pvc1"},"status":{"phase":"Pending"}},{"metadata":{"namespace":"ns1","name":"pvc2"},"status":{"phase":"Lost"}}]}'
+    pv_json = b'{"items":[{"metadata":{"name":"pv1"},"status":{"phase":"Available"}}]}'
+    deploy_json = b'{"items":[{"metadata":{"namespace":"ns1","name":"app1"},"spec":{"replicas":1,"template":{"spec":{"serviceAccountName":"sa1","containers":[{"name":"c1"}]}}}},{"metadata":{"namespace":"ns1","name":"app2"},"spec":{"replicas":2,"template":{"spec":{"serviceAccountName":"sa2","containers":[{"name":"c2","resources":{"requests":{"cpu":"10m"},"limits":{"cpu":"20m"}}}]}}}}]}'
+    sts_json = b'{"items":[]}'
+    scc_json = b'{"items":[{"metadata":{"name":"privileged"},"users":["system:serviceaccount:ns1:sa1"]}]}'
     mock_check_output.side_effect = [
         b"192.168.1.100\n192.168.1.101",  # egressip
         b"node1\nnode2",                  # nodes
-        b"default\nkube-system\nns1",     # namespaces
-        b"",                              # networkpolicy
-        b"pod1 0/1 CrashLoopBackOff",     # pods
-        b""                               # resourcequota
+        b"ns1",                            # namespaces
+        b"",                               # networkpolicy
+        b"",                               # resourcequota
+        pvc_json,
+        pv_json,
+        deploy_json,
+        sts_json,
+        scc_json
     ]
 
     response = client.get("/metrics")
@@ -26,11 +35,18 @@ def test_metrics(mock_check_output, client):
     assert b"ip_pool_total" in response.data
     assert b'egressips_used' in response.data
     assert b'nodesips_used' in response.data
+    assert b'pv_unbound_total' in response.data
+    assert b'pvc_pending_total' in response.data
+    assert b'workloads_single_replica_total' in response.data
+    assert b'workloads_no_resources_total' in response.data
+    assert b'privileged_serviceaccount_total' in response.data
 
 def test_home(client):
     response = client.get("/")
     assert response.status_code == 200
-    assert "EgressIP Metrics" in response.data.decode("utf-8")
+    body = response.data.decode("utf-8")
+    assert "EgressIP Metrics" in body
+    assert "PV Unbound" in body
 
 def test_metrics_format(client):
     response = client.get("/metrics")
@@ -42,11 +58,20 @@ def test_metrics_format(client):
 
 @mock.patch("subprocess.check_output")
 def test_metrics_namespace_filtering(mock_check_output, client):
+    pvc_json = b'{"items":[]}'
+    pv_json = b'{"items":[]}'
+    empty_json = b'{"items":[]}'
     mock_check_output.side_effect = [
         b"192.168.1.10",         # egressip
         b"node1",                # nodes
         b"default\nns-user\nopenshift-monitoring",  # namespaces
-        b"", b"", b""            # remaining subprocess calls
+        b"",                     # networkpolicy ns-user
+        b"",                     # resourcequota ns-user
+        pvc_json,                # pvcs
+        pv_json,                 # pvs
+        empty_json,              # deploy
+        empty_json,              # sts
+        b'{"items":[]}'         # scc
     ]
 
     response = client.get("/metrics")
