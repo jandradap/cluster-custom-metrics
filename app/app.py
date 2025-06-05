@@ -21,7 +21,7 @@ exclude_ns_patterns = []
 cache_results = {
     "np": [],
     "quota": [],
-    "pvc_unbound": [],
+    "pv_unbound": [],
     "pvc_pending": [],
     "single_replica": [],
     "no_resources": [],
@@ -39,8 +39,8 @@ ns_quota_total = Gauge('namespaces_without_resourcequota_total', 'Total namespac
 ns_quota_label = Gauge('namespace_without_resourcequota', 'Namespace without ResourceQuota', ['namespace'], registry=registry)
 
 # PVC metrics
-pvc_unbound_total = Gauge('pvc_unbound_total', 'Total PVCs in Lost or unbound state', registry=registry)
-pvc_unbound_info = Gauge('pvc_unbound', 'PVC in Lost/unbound state', ['namespace', 'pvc'], registry=registry)
+pv_unbound_total = Gauge('pv_unbound_total', 'Total PVs not bound to any PVC', registry=registry)
+pv_unbound_info = Gauge('pv_unbound', 'PV not bound to any PVC', ['pv'], registry=registry)
 pvc_pending_total = Gauge('pvc_pending_total', 'Total PVCs pending', registry=registry)
 pvc_pending_info = Gauge('pvc_pending', 'PVC in Pending state', ['namespace', 'pvc'], registry=registry)
 
@@ -90,7 +90,7 @@ def home():
         pie_data=pie_data,
         np=cache_results["np"],
         quota=cache_results["quota"],
-        pvc_unbound=cache_results["pvc_unbound"],
+        pv_unbound=cache_results["pv_unbound"],
         pvc_pending=cache_results["pvc_pending"],
         single_replica=cache_results["single_replica"],
         no_resources=cache_results["no_resources"],
@@ -167,7 +167,6 @@ def update_metrics():
 
     # PVCs
     pvc_data = run_cmd_json("pvcs", ["oc", "get", "pvc", "-A", "-o", "json"])
-    pvc_unbound = []
     pvc_pending = []
     for pvc in pvc_data.get("items", []):
         ns = pvc["metadata"].get("namespace")
@@ -177,16 +176,23 @@ def update_metrics():
         phase = pvc.get("status", {}).get("phase", "").lower()
         if phase == "pending":
             pvc_pending.append({"namespace": ns, "name": name})
-        elif phase != "bound":
-            pvc_unbound.append({"namespace": ns, "name": name})
-    cache_results["pvc_unbound"] = [f"{p['namespace']}/{p['name']}" for p in pvc_unbound]
-    cache_results["pvc_pending"] = [f"{p['namespace']}/{p['name']}" for p in pvc_pending]
-    pvc_unbound_total.set(len(pvc_unbound))
+    cache_results["pvc_pending"] = pvc_pending
     pvc_pending_total.set(len(pvc_pending))
-    for p in pvc_unbound:
-        pvc_unbound_info.labels(namespace=p["namespace"], pvc=p["name"]).set(1)
     for p in pvc_pending:
         pvc_pending_info.labels(namespace=p["namespace"], pvc=p["name"]).set(1)
+
+    # PVs
+    pv_data = run_cmd_json("pvs", ["oc", "get", "pv", "-o", "json"])
+    pv_unbound = []
+    for pv in pv_data.get("items", []):
+        name = pv["metadata"].get("name")
+        phase = pv.get("status", {}).get("phase", "").lower()
+        if phase != "bound":
+            pv_unbound.append({"name": name})
+    cache_results["pv_unbound"] = [p["name"] for p in pv_unbound]
+    pv_unbound_total.set(len(pv_unbound))
+    for p in pv_unbound:
+        pv_unbound_info.labels(pv=p["name"]).set(1)
 
     # Workloads (deployments and statefulsets)
     deploys = run_cmd_json("deployments", ["oc", "get", "deploy", "-A", "-o", "json"])
@@ -219,8 +225,8 @@ def update_metrics():
     process_workloads(deploys, "deployment")
     process_workloads(sts, "statefulset")
 
-    cache_results["single_replica"] = [f"{w['namespace']}/{w['name']} ({w['kind']})" for w in single_replica]
-    cache_results["no_resources"] = [f"{w['namespace']}/{w['name']} ({w['kind']})" for w in no_resources]
+    cache_results["single_replica"] = single_replica
+    cache_results["no_resources"] = no_resources
     workload_single_replica_total.set(len(single_replica))
     workload_no_resources_total.set(len(no_resources))
     for w in single_replica:
@@ -270,7 +276,7 @@ def create_app(config_path=os.getenv("CONFIG_PATH", "config.json")):
     cache_results.update({
         "np": [],
         "quota": [],
-        "pvc_unbound": [],
+        "pv_unbound": [],
         "pvc_pending": [],
         "single_replica": [],
         "no_resources": [],
