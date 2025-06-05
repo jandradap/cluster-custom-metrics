@@ -1,0 +1,17 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: networkpolicy-rules
+  namespace: cluster-monitoring
+spec:
+  groups:
+  - name: networkpolicy
+    rules:
+    - alert: NamespaceWithoutNetworkPolicy
+      expr: namespaces_without_networkpolicy_total > 0
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Namespaces lack NetworkPolicy"
+        description: "One or more namespaces do not define any NetworkPolicy."
