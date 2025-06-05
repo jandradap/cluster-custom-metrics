@@ -24,6 +24,9 @@
 * Compatible with OpenShift and Kubernetes.
 * Easily extensible with your own metrics.
 * Lightweight and containerized.
+* Detect unbound and pending PVCs.
+* Identify single-replica or un‑resourced workloads.
+* Report workloads using privileged ServiceAccounts.
 
 ## Architecture
 
