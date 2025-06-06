@@ -5,6 +5,10 @@ import ipaddress
 import json
 import logging
 import fnmatch
+import ssl
+import tempfile
+import datetime
+import time
 from threading import Timer
 from flask import Flask, Response, render_template
 from prometheus_client import Gauge, generate_latest, CollectorRegistry
@@ -16,9 +20,28 @@ logging.basicConfig(level=log_level, format='%(asctime)s - %(levelname)s - %(mes
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
+@app.template_filter('datetime')
+def _format_datetime(value):
+    try:
+        return datetime.datetime.fromtimestamp(int(value)).strftime('%Y-%m-%d')
+    except Exception:
+        return ''
+
 subnet_cidr = "192.168.1.0/24"
 exclude_ns_patterns = []
 feature_ns_exclusions = {}
+update_seconds = 60
+days_threshold = 180
+enabled_features = {
+    "np": True,
+    "quota": True,
+    "pv_unbound": True,
+    "pvc_pending": True,
+    "single_replica": True,
+    "no_resources": True,
+    "priv_sa": True,
+    "route_cert": True,
+}
 cache_results = {
     "np": [],
     "quota": [],
@@ -26,7 +49,8 @@ cache_results = {
     "pvc_pending": [],
     "single_replica": [],
     "no_resources": [],
-    "priv_sa": []
+    "priv_sa": [],
+    "route_cert": []
 }
 cache_ips = {"nodes": [], "egress": []}
 
@@ -74,6 +98,17 @@ priv_sa_info = Gauge(
     'Workload using privileged service account and SCC',
     ['namespace', 'app', 'serviceaccount', 'scc'], registry=registry)
 
+# HTTPS route certificate metrics
+routes_cert_expiring_total = Gauge(
+    'routes_cert_expiring_total',
+    'Total HTTPS routes with certificates expiring soon',
+    registry=registry)
+route_cert_expiry_timestamp = Gauge(
+    'route_cert_expiry_timestamp',
+    'Expiration timestamp of route TLS certificate',
+    ['namespace', 'route', 'host'],
+    registry=registry)
+
 def exclude_ns(ns, feature=None):
     patterns = list(exclude_ns_patterns)
     if feature and feature in feature_ns_exclusions:
@@ -99,12 +134,32 @@ def home():
         single_replica=cache_results["single_replica"],
         no_resources=cache_results["no_resources"],
         priv_sa=cache_results["priv_sa"],
+        route_cert=cache_results["route_cert"],
         ips=ips,
     )
 
 @app.route("/metrics")
 def metrics():
     return Response(generate_latest(registry), mimetype="text/plain")
+
+@app.route("/healthz")
+def healthz():
+    return "OK", 200
+
+def get_cert_expiry(cert_pem: str) -> int:
+    """Return expiration timestamp from a PEM certificate."""
+    try:
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            tmp.write(cert_pem.encode())
+            tmp.flush()
+            info = ssl._ssl._test_decode_cert(tmp.name)
+        na = info.get('notAfter')
+        if na:
+            dt = datetime.datetime.strptime(na, "%b %d %H:%M:%S %Y %Z")
+            return int(dt.timestamp())
+    except Exception as e:
+        logging.warning(f"Could not parse certificate expiry: {e}")
+    return 0
 
 def update_metrics():
     logging.debug("⏳ Running periodic metrics update")
@@ -154,123 +209,181 @@ def update_metrics():
     nodesips_used.set(len(nodes))
     egressips_used.set(len(egress))
 
-    ns_list = run_cmd("namespaces", ["oc", "get", "ns", "-o", "jsonpath={range .items[*]}{.metadata.name}\n{end}"])
+    ns_list = []
+    if enabled_features.get("np") or enabled_features.get("quota"):
+        ns_list = run_cmd("namespaces", ["oc", "get", "ns", "-o", "jsonpath={range .items[*]}{.metadata.name}\n{end}"])
 
-    ns_list_np = [ns for ns in ns_list if not exclude_ns(ns, "np")]
-    without_np = [ns for ns in ns_list_np if not run_cmd(f"networkpolicy in {ns}", ["oc", "get", "networkpolicy", "-n", ns])]
-    cache_results["np"] = without_np
-    ns_without_np_total.set(len(without_np))
-    for ns in without_np:
-        ns_without_np_label.labels(namespace=ns).set(1)
+    if enabled_features.get("np"):
+        ns_list_np = [ns for ns in ns_list if not exclude_ns(ns, "np")]
+        without_np = [ns for ns in ns_list_np if not run_cmd(f"networkpolicy in {ns}", ["oc", "get", "networkpolicy", "-n", ns])]
+        cache_results["np"] = without_np
+        ns_without_np_total.set(len(without_np))
+        for ns in without_np:
+            ns_without_np_label.labels(namespace=ns).set(1)
+    else:
+        cache_results["np"] = []
+        ns_without_np_total.set(0)
 
-    ns_list_quota = [ns for ns in ns_list if not exclude_ns(ns, "quota")]
-    namespace_without_resourcequota = [ns for ns in ns_list_quota if not run_cmd(f"quotas in {ns}", ["oc", "get", "resourcequota", "-n", ns])]
-    cache_results["quota"] = namespace_without_resourcequota
-    ns_quota_total.set(len(namespace_without_resourcequota))
-    for ns in namespace_without_resourcequota:
-        ns_quota_label.labels(namespace=ns).set(1)
+    if enabled_features.get("quota"):
+        ns_list_quota = [ns for ns in ns_list if not exclude_ns(ns, "quota")]
+        namespace_without_resourcequota = [ns for ns in ns_list_quota if not run_cmd(f"quotas in {ns}", ["oc", "get", "resourcequota", "-n", ns])]
+        cache_results["quota"] = namespace_without_resourcequota
+        ns_quota_total.set(len(namespace_without_resourcequota))
+        for ns in namespace_without_resourcequota:
+            ns_quota_label.labels(namespace=ns).set(1)
+    else:
+        cache_results["quota"] = []
+        ns_quota_total.set(0)
 
-    # PVCs
-    pvc_data = run_cmd_json("pvcs", ["oc", "get", "pvc", "-A", "-o", "json"])
-    pvc_pending = []
-    for pvc in pvc_data.get("items", []):
-        ns = pvc["metadata"].get("namespace")
-        if exclude_ns(ns, "pvc_pending"):
-            continue
-        name = pvc["metadata"]["name"]
-        phase = pvc.get("status", {}).get("phase", "").lower()
-        if phase == "pending":
-            pvc_pending.append({"namespace": ns, "name": name})
-    cache_results["pvc_pending"] = pvc_pending
-    pvc_pending_total.set(len(pvc_pending))
-    for p in pvc_pending:
-        pvc_pending_info.labels(namespace=p["namespace"], pvc=p["name"]).set(1)
+    if enabled_features.get("pvc_pending"):
+        pvc_data = run_cmd_json("pvcs", ["oc", "get", "pvc", "-A", "-o", "json"])
+        pvc_pending = []
+        for pvc in pvc_data.get("items", []):
+            ns = pvc["metadata"].get("namespace")
+            if exclude_ns(ns, "pvc_pending"):
+                continue
+            name = pvc["metadata"]["name"]
+            phase = pvc.get("status", {}).get("phase", "").lower()
+            if phase == "pending":
+                pvc_pending.append({"namespace": ns, "name": name})
+        cache_results["pvc_pending"] = pvc_pending
+        pvc_pending_total.set(len(pvc_pending))
+        for p in pvc_pending:
+            pvc_pending_info.labels(namespace=p["namespace"], pvc=p["name"]).set(1)
+    else:
+        cache_results["pvc_pending"] = []
+        pvc_pending_total.set(0)
 
-    # PVs
-    pv_data = run_cmd_json("pvs", ["oc", "get", "pv", "-o", "json"])
-    pv_unbound = []
-    for pv in pv_data.get("items", []):
-        name = pv["metadata"].get("name")
-        phase = pv.get("status", {}).get("phase", "").lower()
-        if phase != "bound":
-            pv_unbound.append({"name": name})
-    cache_results["pv_unbound"] = [p["name"] for p in pv_unbound]
-    pv_unbound_total.set(len(pv_unbound))
-    for p in pv_unbound:
-        pv_unbound_info.labels(pv=p["name"]).set(1)
+    if enabled_features.get("pv_unbound"):
+        pv_data = run_cmd_json("pvs", ["oc", "get", "pv", "-o", "json"])
+        pv_unbound = []
+        for pv in pv_data.get("items", []):
+            name = pv["metadata"].get("name")
+            phase = pv.get("status", {}).get("phase", "").lower()
+            if phase != "bound":
+                pv_unbound.append({"name": name})
+        cache_results["pv_unbound"] = [p["name"] for p in pv_unbound]
+        pv_unbound_total.set(len(pv_unbound))
+        for p in pv_unbound:
+            pv_unbound_info.labels(pv=p["name"]).set(1)
+    else:
+        cache_results["pv_unbound"] = []
+        pv_unbound_total.set(0)
 
-    # Workloads (deployments and statefulsets)
-    deploys = run_cmd_json("deployments", ["oc", "get", "deploy", "-A", "-o", "json"])
-    sts = run_cmd_json("statefulsets", ["oc", "get", "statefulset", "-A", "-o", "json"])
+    workloads_enabled = enabled_features.get("single_replica") or enabled_features.get("no_resources") or enabled_features.get("priv_sa")
     single_replica = []
     no_resources = []
-    workload_sa = []  # store sa for privileged check
+    workload_sa = []
+    if workloads_enabled:
+        deploys = run_cmd_json("deployments", ["oc", "get", "deploy", "-A", "-o", "json"])
+        sts = run_cmd_json("statefulsets", ["oc", "get", "statefulset", "-A", "-o", "json"])
 
-    def process_workloads(items, kind):
-        for it in items.get("items", []):
-            ns = it["metadata"].get("namespace")
-            name = it["metadata"]["name"]
-            replicas = it.get("spec", {}).get("replicas", 1)
-            sa = it.get("spec", {}).get("template", {}).get("spec", {}).get("serviceAccountName", "default")
-            containers = it.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
-            if replicas == 1 and not exclude_ns(ns, "single_replica"):
-                single_replica.append({"namespace": ns, "name": name, "kind": kind})
-            missing = False
-            for c in containers:
-                res = c.get("resources", {})
-                if not res.get("requests") or not res.get("limits"):
-                    missing = True
-                    break
-            if missing and not exclude_ns(ns, "no_resources"):
-                no_resources.append({"namespace": ns, "name": name, "kind": kind})
-            if not exclude_ns(ns, "priv_sa"):
-                workload_sa.append({"namespace": ns, "name": name, "sa": sa, "kind": kind})
+        def process_workloads(items, kind):
+            for it in items.get("items", []):
+                ns = it["metadata"].get("namespace")
+                name = it["metadata"]["name"]
+                replicas = it.get("spec", {}).get("replicas", 1)
+                sa = it.get("spec", {}).get("template", {}).get("spec", {}).get("serviceAccountName", "default")
+                containers = it.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
+                if enabled_features.get("single_replica") and replicas == 1 and not exclude_ns(ns, "single_replica"):
+                    single_replica.append({"namespace": ns, "name": name, "kind": kind})
+                missing = False
+                for c in containers:
+                    res = c.get("resources", {})
+                    if not res.get("requests") or not res.get("limits"):
+                        missing = True
+                        break
+                if enabled_features.get("no_resources") and missing and not exclude_ns(ns, "no_resources"):
+                    no_resources.append({"namespace": ns, "name": name, "kind": kind})
+                if enabled_features.get("priv_sa") and not exclude_ns(ns, "priv_sa"):
+                    workload_sa.append({"namespace": ns, "name": name, "sa": sa, "kind": kind})
 
-    process_workloads(deploys, "deployment")
-    process_workloads(sts, "statefulset")
+        process_workloads(deploys, "deployment")
+        process_workloads(sts, "statefulset")
 
-    cache_results["single_replica"] = single_replica
-    cache_results["no_resources"] = no_resources
-    workload_single_replica_total.set(len(single_replica))
-    workload_no_resources_total.set(len(no_resources))
-    for w in single_replica:
-        workload_single_replica_info.labels(namespace=w["namespace"], app=w["name"], kind=w["kind"]).set(1)
-    for w in no_resources:
-        workload_no_resources_info.labels(namespace=w["namespace"], app=w["name"], kind=w["kind"]).set(1)
+        process_workloads(deploys, "deployment")
+        process_workloads(sts, "statefulset")
 
-    # Privileged service accounts
-    sccs = run_cmd_json("scc", ["oc", "get", "scc", "-o", "json"])
-    privileged = {}
-    for scc in sccs.get("items", []):
-        scc_name = scc.get("metadata", {}).get("name")
-        if scc_name and scc_name.startswith("restricted"):
-            continue
-        for user in scc.get("users", []) or []:
-            if user.startswith("system:serviceaccount:"):
-                parts = user.split(":")
-                if len(parts) == 4:
-                    privileged[(parts[2], parts[3])] = scc_name
+    if enabled_features.get("single_replica"):
+        cache_results["single_replica"] = single_replica
+        workload_single_replica_total.set(len(single_replica))
+        for w in single_replica:
+            workload_single_replica_info.labels(namespace=w["namespace"], app=w["name"], kind=w["kind"]).set(1)
+    else:
+        cache_results["single_replica"] = []
+        workload_single_replica_total.set(0)
 
-    priv_list = []
-    for w in workload_sa:
-        key = (w["namespace"], w["sa"])
-        if key in privileged:
-            priv_list.append({
-                "namespace": w["namespace"],
-                "name": w["name"],
-                "sa": w["sa"],
-                "scc": privileged[key],
-            })
+    if enabled_features.get("no_resources"):
+        cache_results["no_resources"] = no_resources
+        workload_no_resources_total.set(len(no_resources))
+        for w in no_resources:
+            workload_no_resources_info.labels(namespace=w["namespace"], app=w["name"], kind=w["kind"]).set(1)
+    else:
+        cache_results["no_resources"] = []
+        workload_no_resources_total.set(0)
 
-    cache_results["priv_sa"] = priv_list
-    priv_sa_total.set(len(priv_list))
-    for p in priv_list:
-        priv_sa_info.labels(namespace=p["namespace"], app=p["name"], serviceaccount=p["sa"], scc=p["scc"]).set(1)
+    if enabled_features.get("priv_sa"):
+        sccs = run_cmd_json("scc", ["oc", "get", "scc", "-o", "json"])
+        privileged = {}
+        for scc in sccs.get("items", []):
+            scc_name = scc.get("metadata", {}).get("name")
+            if scc_name and scc_name.startswith("restricted"):
+                continue
+            for user in scc.get("users", []) or []:
+                if user.startswith("system:serviceaccount:"):
+                    parts = user.split(":")
+                    if len(parts) == 4:
+                        privileged[(parts[2], parts[3])] = scc_name
 
-    Timer(60, update_metrics).start()
+        priv_list = []
+        for w in workload_sa:
+            key = (w["namespace"], w["sa"])
+            if key in privileged:
+                priv_list.append({
+                    "namespace": w["namespace"],
+                    "name": w["name"],
+                    "sa": w["sa"],
+                    "scc": privileged[key],
+                })
+
+        cache_results["priv_sa"] = priv_list
+        priv_sa_total.set(len(priv_list))
+        for p in priv_list:
+            priv_sa_info.labels(namespace=p["namespace"], app=p["name"], serviceaccount=p["sa"], scc=p["scc"]).set(1)
+    else:
+        cache_results["priv_sa"] = []
+        priv_sa_total.set(0)
+
+    if enabled_features.get("route_cert"):
+        route_data = run_cmd_json("routes", ["oc", "get", "route", "-A", "-o", "json"])
+        route_list = []
+        expiring = 0
+        now = int(time.time())
+        for rt in route_data.get("items", []):
+            ns = rt.get("metadata", {}).get("namespace")
+            if exclude_ns(ns, "route_cert"):
+                continue
+            name = rt.get("metadata", {}).get("name")
+            host = rt.get("spec", {}).get("host", "")
+            tls = rt.get("spec", {}).get("tls") or {}
+            cert = tls.get("certificate")
+            if not cert:
+                continue
+            expiry = get_cert_expiry(cert)
+            route_cert_expiry_timestamp.labels(namespace=ns, route=name, host=host).set(expiry)
+            if expiry and expiry - now <= days_threshold * 86400:
+                route_list.append({"namespace": ns, "name": name, "host": host, "expiry": expiry})
+                expiring += 1
+        cache_results["route_cert"] = sorted(route_list, key=lambda x: x["expiry"])
+        routes_cert_expiring_total.set(expiring)
+    else:
+        cache_results["route_cert"] = []
+        routes_cert_expiring_total.set(0)
+
+    Timer(update_seconds, update_metrics).start()
 
 def create_app(config_path=os.getenv("CONFIG_PATH", "config.json")):
-    global subnet_cidr, exclude_ns_patterns, feature_ns_exclusions, cache_results
+    global subnet_cidr, exclude_ns_patterns, feature_ns_exclusions, cache_results, update_seconds, enabled_features, days_threshold
 
     with open(config_path) as f:
         config = json.load(f)
@@ -278,6 +391,9 @@ def create_app(config_path=os.getenv("CONFIG_PATH", "config.json")):
     subnet_cidr = config.get("subnet", "192.168.1.0/24")
     exclude_ns_patterns = config.get("exclude_namespaces", [])
     feature_ns_exclusions = config.get("feature_exclusions", {})
+    enabled_features = config.get("enabled_features", enabled_features)
+    update_seconds = int(config.get("update_seconds", 60))
+    days_threshold = int(config.get("days", days_threshold))
     cache_results.update({
         "np": [],
         "quota": [],
@@ -285,7 +401,8 @@ def create_app(config_path=os.getenv("CONFIG_PATH", "config.json")):
         "pvc_pending": [],
         "single_replica": [],
         "no_resources": [],
-        "priv_sa": []
+        "priv_sa": [],
+        "route_cert": []
     })
     return app
 

@@ -8,10 +8,13 @@ spec:
   - name: single-replica
     rules:
     - alert: SingleReplicaWorkload
-      expr: workloads_single_replica_total > 0
+      expr: workload_single_replica > 0
       for: 15m
       labels:
         severity: warning
+        namespace: '{{ $labels.namespace }}'
+        app: '{{ $labels.app }}'
+        kind: '{{ $labels.kind }}'
       annotations:
-        summary: "Single replica workload detected"
-        description: "Deployments or StatefulSets are running with only one replica."
+        summary: "{{ $labels.kind }} {{ $labels.app }} in {{ $labels.namespace }} with one replica"
+        description: "Workload {{ $labels.app }} in namespace {{ $labels.namespace }} is running a single replica."

@@ -8,10 +8,11 @@ spec:
   - name: networkpolicy
     rules:
     - alert: NamespaceWithoutNetworkPolicy
-      expr: namespaces_without_networkpolicy_total > 0
+      expr: namespace_without_networkpolicy > 0
       for: 5m
       labels:
         severity: warning
+        namespace: '{{ $labels.namespace }}'
       annotations:
-        summary: "Namespaces lack NetworkPolicy"
-        description: "One or more namespaces do not define any NetworkPolicy."
+        summary: "Namespace {{ $labels.namespace }} lacks NetworkPolicy"
+        description: "Namespace {{ $labels.namespace }} does not define any NetworkPolicy."

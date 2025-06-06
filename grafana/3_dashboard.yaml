@@ -440,7 +440,7 @@
           }
         }
       ],
-    "type": "table"
+      "type": "table"
     },
     {
       "datasource": {
@@ -453,14 +453,25 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {"color": "green", "value": null},
-              {"color": "red", "value": 80}
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
             ]
           }
         },
         "overrides": []
       },
-      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 17},
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 17
+      },
       "id": 9,
       "options": {
         "colorMode": "value",
@@ -468,7 +479,13 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "percentChangeColorMode": "standard",
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "showPercentChange": false,
         "textMode": "auto",
         "wideLayout": true
@@ -476,7 +493,10 @@
       "pluginVersion": "11.3.0",
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
+          },
           "editorMode": "code",
           "expr": "pvc_pending_total",
           "range": true,
@@ -497,14 +517,25 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {"color": "green", "value": null},
-              {"color": "red", "value": 80}
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
             ]
           }
         },
         "overrides": []
       },
-      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 17},
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 17
+      },
       "id": 10,
       "options": {
         "colorMode": "value",
@@ -512,7 +543,13 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "percentChangeColorMode": "standard",
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "showPercentChange": false,
         "textMode": "auto",
         "wideLayout": true
@@ -520,7 +557,10 @@
       "pluginVersion": "11.3.0",
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
+          },
           "editorMode": "code",
           "expr": "pv_unbound_total",
           "range": true,
@@ -541,14 +581,25 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {"color": "green", "value": null},
-              {"color": "red", "value": 80}
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
             ]
           }
         },
         "overrides": []
       },
-      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 21},
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 21
+      },
       "id": 11,
       "options": {
         "colorMode": "value",
@@ -556,7 +607,13 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "percentChangeColorMode": "standard",
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "showPercentChange": false,
         "textMode": "auto",
         "wideLayout": true
@@ -564,7 +621,10 @@
       "pluginVersion": "11.3.0",
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
+          },
           "editorMode": "code",
           "expr": "workloads_single_replica_total",
           "range": true,
@@ -585,14 +645,25 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {"color": "green", "value": null},
-              {"color": "red", "value": 80}
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
             ]
           }
         },
         "overrides": []
       },
-      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 21},
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 21
+      },
       "id": 12,
       "options": {
         "colorMode": "value",
@@ -600,7 +671,13 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "percentChangeColorMode": "standard",
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "showPercentChange": false,
         "textMode": "auto",
         "wideLayout": true
@@ -608,7 +685,10 @@
       "pluginVersion": "11.3.0",
       "targets": [
         {
-          "datasource": {"type": "prometheus", "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
+          },
           "editorMode": "code",
           "expr": "workloads_no_resources_total",
           "range": true,
@@ -629,15 +709,634 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {"color": "green", "value": null},
-              {"color": "red", "value": 80}
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
             ]
           }
         },
         "overrides": []
       },
-      "gridPos": {"h": 4, "w": 12, "x": 0, "y": 25},
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 0,
+        "y": 25
+      },
       "id": 13,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
+          },
+          "editorMode": "code",
+          "expr": "privileged_serviceaccount_total",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Privileged ServiceAccounts",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "fa5beda3-eb0b-4917-b233-2b047e49b64d"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 29
+      },
+      "id": 14,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 2,
+        "showHeader": true
+      },
+      "pluginVersion": "11.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
+          },
+          "editorMode": "code",
+          "expr": "pvc_pending",
+          "interval": "",
+          "legendFormat": "Namespace",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "PVC Pending list",
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "keepLabels": [
+              "namespace",
+              "pvc"
+            ],
+            "mode": "rows"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "exported_namespace": false,
+              "exported_pvc": false,
+              "label": true,
+              "pvc_pending": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "exported_namespace": "Namespace",
+              "exported_pvc": "PVC",
+              "label": "",
+              "value": "PVC"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "fa5beda3-eb0b-4917-b233-2b047e49b64d"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 29
+      },
+      "id": 15,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 2,
+        "showHeader": true
+      },
+      "pluginVersion": "11.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
+          },
+          "editorMode": "code",
+          "expr": "pv_unbound",
+          "interval": "",
+          "legendFormat": "Namespace",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "PV Unbound list",
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "keepLabels": [
+              "pv"
+            ],
+            "mode": "rows"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "exported_pv": false,
+              "label": true,
+              "pv_unbound": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "exported_pv": "PV",
+              "label": "",
+              "value": "PV"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "fa5beda3-eb0b-4917-b233-2b047e49b64d"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 34
+      },
+      "id": 16,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 2,
+        "showHeader": true
+      },
+      "pluginVersion": "11.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
+          },
+          "editorMode": "code",
+          "expr": "workload_single_replica",
+          "interval": "",
+          "legendFormat": "Namespace",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Single Replica list",
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "keepLabels": [
+              "namespace",
+              "app",
+              "kind"
+            ],
+            "mode": "rows"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "exported_namespace": false,
+              "exported_app": false,
+              "exported_kind": false,
+              "label": true,
+              "workload_single_replica": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "exported_namespace": "Namespace",
+              "exported_app": "App",
+              "exported_kind": "Kind",
+              "label": "",
+              "value": "Workload"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "fa5beda3-eb0b-4917-b233-2b047e49b64d"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 34
+      },
+      "id": 17,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 2,
+        "showHeader": true
+      },
+      "pluginVersion": "11.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
+          },
+          "editorMode": "code",
+          "expr": "workload_no_resources",
+          "interval": "",
+          "legendFormat": "Namespace",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "No Resources list",
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "keepLabels": [
+              "namespace",
+              "app",
+              "kind"
+            ],
+            "mode": "rows"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "exported_namespace": false,
+              "exported_app": false,
+              "exported_kind": false,
+              "label": true,
+              "workload_no_resources": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "exported_namespace": "Namespace",
+              "exported_app": "App",
+              "exported_kind": "Kind",
+              "label": "",
+              "value": "Workload"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "fa5beda3-eb0b-4917-b233-2b047e49b64d"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 0,
+        "y": 39
+      },
+      "id": 18,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 2,
+        "showHeader": true
+      },
+      "pluginVersion": "11.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"
+          },
+          "editorMode": "code",
+          "expr": "privileged_serviceaccount",
+          "interval": "",
+          "legendFormat": "Namespace",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Privileged SA list",
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "keepLabels": [
+              "namespace",
+              "app",
+              "serviceaccount",
+              "scc"
+            ],
+            "mode": "rows"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "exported_namespace": false,
+              "exported_app": false,
+              "exported_serviceaccount": false,
+              "exported_scc": false,
+              "label": true,
+              "privileged_serviceaccount": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "exported_namespace": "Namespace",
+              "exported_app": "App",
+              "exported_serviceaccount": "SA",
+              "exported_scc": "SCC",
+              "label": "",
+              "value": "SA"
+            }
+          }
+        }
+      ],
+    "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "fa5beda3-eb0b-4917-b233-2b047e49b64d"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 44},
+      "id": 19,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -654,13 +1353,56 @@
         {
           "datasource": {"type": "prometheus", "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"},
           "editorMode": "code",
-          "expr": "privileged_serviceaccount_total",
+          "expr": "routes_cert_expiring_total",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Privileged ServiceAccounts",
+      "title": "Routes cert expiring",
       "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "fa5beda3-eb0b-4917-b233-2b047e49b64d"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {"align": "auto", "cellOptions": {"type": "auto"}, "inspect": false},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "red", "value": 80}
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 5, "w": 12, "x": 0, "y": 48},
+      "id": 20,
+      "options": {"cellHeight": "sm", "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false}, "frameIndex": 2, "showHeader": true},
+      "pluginVersion": "11.3.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"},
+          "editorMode": "code",
+          "expr": "route_cert_expiry_timestamp",
+          "interval": "",
+          "legendFormat": "Route",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Route cert expiry list",
+      "transformations": [
+        {"id": "labelsToFields", "options": {"keepLabels": ["namespace", "route", "host"], "mode": "rows"}},
+        {"id": "merge", "options": {}},
+        {"id": "organize", "options": {"excludeByName": {"Time": true, "exported_namespace": false, "exported_route": false, "exported_host": false, "label": true, "route_cert_expiry_timestamp": true}, "includeByName": {}, "indexByName": {}, "renameByName": {"exported_namespace": "Namespace", "exported_route": "Route", "exported_host": "Host", "label": "", "value": "Expires"}}}
+      ],
+      "type": "table"
     }
   ],
   "preload": false,

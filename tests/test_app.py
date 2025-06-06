@@ -2,6 +2,7 @@ import os
 import pytest
 from unittest import mock
 from app.app import create_app
+import time
 
 @pytest.fixture
 def client():
@@ -10,13 +11,23 @@ def client():
     app.config['TESTING'] = True
     return app.test_client()
 
+@pytest.fixture
+def client_disabled():
+    os.environ["CONFIG_PATH"] = "tests/config_disabled.json"
+    app = create_app("tests/config_disabled.json")
+    app.config['TESTING'] = True
+    return app.test_client()
+
+@mock.patch("app.app.get_cert_expiry")
 @mock.patch("subprocess.check_output")
-def test_metrics(mock_check_output, client):
+def test_metrics(mock_check_output, mock_cert, client):
     pvc_json = b'{"items":[{"metadata":{"namespace":"ns1","name":"pvc1"},"status":{"phase":"Pending"}},{"metadata":{"namespace":"ns1","name":"pvc2"},"status":{"phase":"Lost"}}]}'
     pv_json = b'{"items":[{"metadata":{"name":"pv1"},"status":{"phase":"Available"}}]}'
     deploy_json = b'{"items":[{"metadata":{"namespace":"ns1","name":"app1"},"spec":{"replicas":1,"template":{"spec":{"serviceAccountName":"sa1","containers":[{"name":"c1"}]}}}},{"metadata":{"namespace":"ns1","name":"app2"},"spec":{"replicas":2,"template":{"spec":{"serviceAccountName":"sa2","containers":[{"name":"c2","resources":{"requests":{"cpu":"10m"},"limits":{"cpu":"20m"}}}]}}}}]}'
     sts_json = b'{"items":[]}'
     scc_json = b'{"items":[{"metadata":{"name":"privileged"},"users":["system:serviceaccount:ns1:sa1"]}]}'
+    route_json = b'{"items":[{"metadata":{"namespace":"ns1","name":"r1"},"spec":{"host":"r1.example.com","tls":{"certificate":"dummy"}}}]}'
+    mock_cert.return_value = int(time.time()) + 60*86400
     mock_check_output.side_effect = [
         b"192.168.1.100\n192.168.1.101",  # egressip
         b"node1\nnode2",                  # nodes
@@ -27,7 +38,8 @@ def test_metrics(mock_check_output, client):
         pv_json,
         deploy_json,
         sts_json,
-        scc_json
+        scc_json,
+        route_json
     ]
 
     response = client.get("/metrics")
@@ -40,6 +52,7 @@ def test_metrics(mock_check_output, client):
     assert b'workloads_single_replica_total' in response.data
     assert b'workloads_no_resources_total' in response.data
     assert b'privileged_serviceaccount_total' in response.data
+    assert b'routes_cert_expiring_total' in response.data
 
 def test_home(client):
     response = client.get("/")
@@ -56,11 +69,14 @@ def test_metrics_format(client):
         if not line.startswith("#"):
             assert " " in line and line.strip().split(" ")[-1].replace(".", "").isdigit()
 
+@mock.patch("app.app.get_cert_expiry")
 @mock.patch("subprocess.check_output")
-def test_metrics_namespace_filtering(mock_check_output, client):
+def test_metrics_namespace_filtering(mock_check_output, mock_cert, client):
     pvc_json = b'{"items":[]}'
     pv_json = b'{"items":[]}'
     empty_json = b'{"items":[]}'
+    route_json = b'{"items":[]}'
+    mock_cert.return_value = int(time.time()) + 60*86400
     mock_check_output.side_effect = [
         b"192.168.1.10",         # egressip
         b"node1",                # nodes
@@ -71,7 +87,8 @@ def test_metrics_namespace_filtering(mock_check_output, client):
         pv_json,                 # pvs
         empty_json,              # deploy
         empty_json,              # sts
-        b'{"items":[]}'         # scc
+        b'{"items":[]}',        # scc
+        route_json
     ]
 
     response = client.get("/metrics")
@@ -80,7 +97,32 @@ def test_metrics_namespace_filtering(mock_check_output, client):
     assert "namespace_without_networkpolicy" in body
     assert "openshift-monitoring" not in body  # filtered namespace
 
+
+@mock.patch("subprocess.check_output")
+def test_feature_toggle(mock_check_output, client_disabled):
+    mock_check_output.side_effect = [
+        b"192.168.1.10",  # egressip
+        b"node1",        # nodes
+    ]
+
+    response = client_disabled.get("/metrics")
+    assert response.status_code == 200
+    body = response.data.decode("utf-8")
+    # Disabled metrics should report zero
+    assert "pv_unbound_total 0.0" in body
+    assert "pvc_pending_total 0.0" in body
+    assert "workloads_single_replica_total 0.0" in body
+    assert "privileged_serviceaccount_total 0.0" in body
+    assert "routes_cert_expiring_total 0.0" in body
+    # IP metrics still available
+    assert "ip_pool_total" in body
+
 def test_config_file_loaded(client):
     config_path = os.environ.get("CONFIG_PATH")
     assert config_path is not None
     assert os.path.exists(config_path)
+
+def test_health_endpoint(client):
+    response = client.get("/healthz")
+    assert response.status_code == 200
+    assert response.data.decode("utf-8") == "OK"
