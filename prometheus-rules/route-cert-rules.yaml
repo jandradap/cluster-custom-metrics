@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: route-cert-expiry-rules
+  namespace: cluster-monitoring
+spec:
+  groups:
+  - name: route-cert-expiry
+    rules:
+    - alert: RouteCertificateExpiringSoon
+      expr: (route_cert_expiry_timestamp - time()) < 15552000
+      for: 10m
+      labels:
+        severity: warning
+        namespace: '{{ $labels.namespace }}'
+        route: '{{ $labels.route }}'
+      annotations:
+        summary: "Route {{ $labels.route }} certificate expiring soon"
+        description: "TLS certificate for route {{ $labels.route }} in namespace {{ $labels.namespace }} expires in less than 180 days."

@@ -5,6 +5,10 @@ import ipaddress
 import json
 import logging
 import fnmatch
+import ssl
+import tempfile
+import datetime
+import time
 from threading import Timer
 from flask import Flask, Response, render_template
 from prometheus_client import Gauge, generate_latest, CollectorRegistry
@@ -16,10 +20,18 @@ logging.basicConfig(level=log_level, format='%(asctime)s - %(levelname)s - %(mes
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
+@app.template_filter('datetime')
+def _format_datetime(value):
+    try:
+        return datetime.datetime.fromtimestamp(int(value)).strftime('%Y-%m-%d')
+    except Exception:
+        return ''
+
 subnet_cidr = "192.168.1.0/24"
 exclude_ns_patterns = []
 feature_ns_exclusions = {}
 update_seconds = 60
+days_threshold = 180
 enabled_features = {
     "np": True,
     "quota": True,
@@ -28,6 +40,7 @@ enabled_features = {
     "single_replica": True,
     "no_resources": True,
     "priv_sa": True,
+    "route_cert": True,
 }
 cache_results = {
     "np": [],
@@ -36,7 +49,8 @@ cache_results = {
     "pvc_pending": [],
     "single_replica": [],
     "no_resources": [],
-    "priv_sa": []
+    "priv_sa": [],
+    "route_cert": []
 }
 cache_ips = {"nodes": [], "egress": []}
 
@@ -84,6 +98,17 @@ priv_sa_info = Gauge(
     'Workload using privileged service account and SCC',
     ['namespace', 'app', 'serviceaccount', 'scc'], registry=registry)
 
+# HTTPS route certificate metrics
+routes_cert_expiring_total = Gauge(
+    'routes_cert_expiring_total',
+    'Total HTTPS routes with certificates expiring soon',
+    registry=registry)
+route_cert_expiry_timestamp = Gauge(
+    'route_cert_expiry_timestamp',
+    'Expiration timestamp of route TLS certificate',
+    ['namespace', 'route', 'host'],
+    registry=registry)
+
 def exclude_ns(ns, feature=None):
     patterns = list(exclude_ns_patterns)
     if feature and feature in feature_ns_exclusions:
@@ -109,6 +134,7 @@ def home():
         single_replica=cache_results["single_replica"],
         no_resources=cache_results["no_resources"],
         priv_sa=cache_results["priv_sa"],
+        route_cert=cache_results["route_cert"],
         ips=ips,
     )
 
@@ -119,6 +145,21 @@ def metrics():
 @app.route("/healthz")
 def healthz():
     return "OK", 200
+
+def get_cert_expiry(cert_pem: str) -> int:
+    """Return expiration timestamp from a PEM certificate."""
+    try:
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            tmp.write(cert_pem.encode())
+            tmp.flush()
+            info = ssl._ssl._test_decode_cert(tmp.name)
+        na = info.get('notAfter')
+        if na:
+            dt = datetime.datetime.strptime(na, "%b %d %H:%M:%S %Y %Z")
+            return int(dt.timestamp())
+    except Exception as e:
+        logging.warning(f"Could not parse certificate expiry: {e}")
+    return 0
 
 def update_metrics():
     logging.debug("⏳ Running periodic metrics update")
@@ -313,10 +354,36 @@ def update_metrics():
         cache_results["priv_sa"] = []
         priv_sa_total.set(0)
 
+    if enabled_features.get("route_cert"):
+        route_data = run_cmd_json("routes", ["oc", "get", "route", "-A", "-o", "json"])
+        route_list = []
+        expiring = 0
+        now = int(time.time())
+        for rt in route_data.get("items", []):
+            ns = rt.get("metadata", {}).get("namespace")
+            if exclude_ns(ns, "route_cert"):
+                continue
+            name = rt.get("metadata", {}).get("name")
+            host = rt.get("spec", {}).get("host", "")
+            tls = rt.get("spec", {}).get("tls") or {}
+            cert = tls.get("certificate")
+            if not cert:
+                continue
+            expiry = get_cert_expiry(cert)
+            route_cert_expiry_timestamp.labels(namespace=ns, route=name, host=host).set(expiry)
+            if expiry and expiry - now <= days_threshold * 86400:
+                route_list.append({"namespace": ns, "name": name, "host": host, "expiry": expiry})
+                expiring += 1
+        cache_results["route_cert"] = sorted(route_list, key=lambda x: x["expiry"])
+        routes_cert_expiring_total.set(expiring)
+    else:
+        cache_results["route_cert"] = []
+        routes_cert_expiring_total.set(0)
+
     Timer(update_seconds, update_metrics).start()
 
 def create_app(config_path=os.getenv("CONFIG_PATH", "config.json")):
-    global subnet_cidr, exclude_ns_patterns, feature_ns_exclusions, cache_results, update_seconds, enabled_features
+    global subnet_cidr, exclude_ns_patterns, feature_ns_exclusions, cache_results, update_seconds, enabled_features, days_threshold
 
     with open(config_path) as f:
         config = json.load(f)
@@ -326,6 +393,7 @@ def create_app(config_path=os.getenv("CONFIG_PATH", "config.json")):
     feature_ns_exclusions = config.get("feature_exclusions", {})
     enabled_features = config.get("enabled_features", enabled_features)
     update_seconds = int(config.get("update_seconds", 60))
+    days_threshold = int(config.get("days", days_threshold))
     cache_results.update({
         "np": [],
         "quota": [],
@@ -333,7 +401,8 @@ def create_app(config_path=os.getenv("CONFIG_PATH", "config.json")):
         "pvc_pending": [],
         "single_replica": [],
         "no_resources": [],
-        "priv_sa": []
+        "priv_sa": [],
+        "route_cert": []
     })
     return app
 

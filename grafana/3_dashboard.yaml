@@ -1309,6 +1309,99 @@
           }
         }
       ],
+    "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "fa5beda3-eb0b-4917-b233-2b047e49b64d"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 44},
+      "id": 19,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.3.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"},
+          "editorMode": "code",
+          "expr": "routes_cert_expiring_total",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Routes cert expiring",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "fa5beda3-eb0b-4917-b233-2b047e49b64d"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {"align": "auto", "cellOptions": {"type": "auto"}, "inspect": false},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "red", "value": 80}
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 5, "w": 12, "x": 0, "y": 48},
+      "id": 20,
+      "options": {"cellHeight": "sm", "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false}, "frameIndex": 2, "showHeader": true},
+      "pluginVersion": "11.3.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "e365a3a1-01a3-4ae9-ae33-7755be9b4953"},
+          "editorMode": "code",
+          "expr": "route_cert_expiry_timestamp",
+          "interval": "",
+          "legendFormat": "Route",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Route cert expiry list",
+      "transformations": [
+        {"id": "labelsToFields", "options": {"keepLabels": ["namespace", "route", "host"], "mode": "rows"}},
+        {"id": "merge", "options": {}},
+        {"id": "organize", "options": {"excludeByName": {"Time": true, "exported_namespace": false, "exported_route": false, "exported_host": false, "label": true, "route_cert_expiry_timestamp": true}, "includeByName": {}, "indexByName": {}, "renameByName": {"exported_namespace": "Namespace", "exported_route": "Route", "exported_host": "Host", "label": "", "value": "Expires"}}}
+      ],
       "type": "table"
     }
   ],

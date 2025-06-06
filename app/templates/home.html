@@ -226,6 +226,22 @@
       <p><i>No workloads using privileged service accounts were found.</i></p>
       {% endif %}
     </div>
+
+    <div class="section">
+      <h2>HTTPS Routes certificate expiry</h2>
+      {% if route_cert %}
+      <table>
+        <thead><tr><th>Namespace</th><th>Route</th><th>Host</th><th>Expires</th></tr></thead>
+        <tbody>
+          {% for r in route_cert %}
+          <tr><td>{{ r.namespace }}</td><td>{{ r.name }}</td><td>{{ r.host }}</td><td>{{ r.expiry | datetime }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p><i>No routes with certificates nearing expiry.</i></p>
+      {% endif %}
+    </div>
   </div>
 </body>
 </html>

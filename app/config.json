@@ -8,7 +8,8 @@
         "pvc_pending": [],
         "single_replica": [],
         "no_resources": [],
-    "priv_sa": []
+        "priv_sa": [],
+        "route_cert": []
     },
     "enabled_features": {
         "np": true,
@@ -17,7 +18,9 @@
         "pvc_pending": true,
         "single_replica": true,
         "no_resources": true,
-        "priv_sa": true
+        "priv_sa": true,
+        "route_cert": true
     },
-    "update_seconds": 60
+    "update_seconds": 60,
+    "days": 180
 }
