@@ -10,5 +10,14 @@
         "no_resources": [],
     "priv_sa": []
     },
+    "enabled_features": {
+        "np": true,
+        "quota": true,
+        "pv_unbound": true,
+        "pvc_pending": true,
+        "single_replica": true,
+        "no_resources": true,
+        "priv_sa": true
+    },
     "update_seconds": 60
 }

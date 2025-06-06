@@ -72,7 +72,7 @@ This component is deployed as a Kubernetes Deployment and configured with a Conf
 ## Configuration
 
 Modify the `configmap.yaml` to change or add Python scripts that collect metrics. Each script must define and expose Prometheus metrics using `prometheus_client`.
-You can also control how often the exporter refreshes data with the `update_seconds` key:
+You can enable or disable individual metrics using `enabled_features` and control how often the exporter refreshes data with the `update_seconds` key:
 
 ```yaml
 data:
@@ -80,6 +80,15 @@ data:
     {
       "subnet": "10.10.10.0/24",
       "exclude_namespaces": ["openshift-*", "kube-*"],
+      "enabled_features": {
+        "np": true,
+        "quota": true,
+        "pv_unbound": true,
+        "pvc_pending": true,
+        "single_replica": true,
+        "no_resources": true,
+        "priv_sa": true
+      },
       "update_seconds": 60
     }
 ```
