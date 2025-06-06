@@ -84,3 +84,8 @@ def test_config_file_loaded(client):
     config_path = os.environ.get("CONFIG_PATH")
     assert config_path is not None
     assert os.path.exists(config_path)
+
+def test_health_endpoint(client):
+    response = client.get("/healthz")
+    assert response.status_code == 200
+    assert response.data.decode("utf-8") == "OK"

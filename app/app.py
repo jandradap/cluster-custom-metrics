@@ -19,6 +19,7 @@ app = Flask(__name__, static_folder='static', template_folder='templates')
 subnet_cidr = "192.168.1.0/24"
 exclude_ns_patterns = []
 feature_ns_exclusions = {}
+update_seconds = 60
 cache_results = {
     "np": [],
     "quota": [],
@@ -105,6 +106,10 @@ def home():
 @app.route("/metrics")
 def metrics():
     return Response(generate_latest(registry), mimetype="text/plain")
+
+@app.route("/healthz")
+def healthz():
+    return "OK", 200
 
 def update_metrics():
     logging.debug("⏳ Running periodic metrics update")
@@ -267,10 +272,10 @@ def update_metrics():
     for p in priv_list:
         priv_sa_info.labels(namespace=p["namespace"], app=p["name"], serviceaccount=p["sa"], scc=p["scc"]).set(1)
 
-    Timer(60, update_metrics).start()
+    Timer(update_seconds, update_metrics).start()
 
 def create_app(config_path=os.getenv("CONFIG_PATH", "config.json")):
-    global subnet_cidr, exclude_ns_patterns, feature_ns_exclusions, cache_results
+    global subnet_cidr, exclude_ns_patterns, feature_ns_exclusions, cache_results, update_seconds
 
     with open(config_path) as f:
         config = json.load(f)
@@ -278,6 +283,7 @@ def create_app(config_path=os.getenv("CONFIG_PATH", "config.json")):
     subnet_cidr = config.get("subnet", "192.168.1.0/24")
     exclude_ns_patterns = config.get("exclude_namespaces", [])
     feature_ns_exclusions = config.get("feature_exclusions", {})
+    update_seconds = int(config.get("update_seconds", 60))
     cache_results.update({
         "np": [],
         "quota": [],

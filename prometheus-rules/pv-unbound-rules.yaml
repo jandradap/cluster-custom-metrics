@@ -8,10 +8,11 @@ spec:
   - name: pv-unbound
     rules:
     - alert: UnboundPersistentVolume
-      expr: pv_unbound_total > 0
+      expr: pv_unbound > 0
       for: 10m
       labels:
         severity: warning
+        pv: '{{ $labels.pv }}'
       annotations:
-        summary: "Unbound PersistentVolumes"
-        description: "There are PersistentVolumes not bound to any PVC."
+        summary: "PV {{ $labels.pv }} is unbound"
+        description: "PersistentVolume {{ $labels.pv }} is not bound to any PVC."

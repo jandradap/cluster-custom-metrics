@@ -8,10 +8,11 @@ spec:
   - name: resourcequota
     rules:
     - alert: NamespaceWithoutResourceQuota
-      expr: namespaces_without_resourcequota_total > 0
+      expr: namespace_without_resourcequota > 0
       for: 5m
       labels:
         severity: warning
+        namespace: '{{ $labels.namespace }}'
       annotations:
-        summary: "Namespaces missing ResourceQuota"
-        description: "Some namespaces do not have any ResourceQuota defined."
+        summary: "Namespace {{ $labels.namespace }} missing ResourceQuota"
+        description: "Namespace {{ $labels.namespace }} does not have any ResourceQuota defined."
