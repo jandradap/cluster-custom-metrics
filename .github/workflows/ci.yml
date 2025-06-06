@@ -3,6 +3,7 @@ name: Build, Test and Push to Quay.io
 on:
   push:
     branches:
+      - main
       - develop
       - codex
   release:
