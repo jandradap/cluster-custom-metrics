@@ -36,3 +36,13 @@ def test_get_cert_expiry_failure(monkeypatch):
     monkeypatch.setattr(app_module.ssl._ssl, '_test_decode_cert', fake_decode)
     ts = app_module.get_cert_expiry('bad')
     assert ts == 0
+
+
+def test_format_datetime_valid():
+    ts = 1700000000
+    result = app_module._format_datetime(ts)
+    assert result == '2023-11-14'
+
+
+def test_format_datetime_invalid():
+    assert app_module._format_datetime('bad') == ''
