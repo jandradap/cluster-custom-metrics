@@ -8,6 +8,7 @@
         "pvc_pending": [],
         "single_replica": [],
         "no_resources": [],
-        "priv_sa": []
-    }
+    "priv_sa": []
+    },
+    "update_seconds": 60
 }

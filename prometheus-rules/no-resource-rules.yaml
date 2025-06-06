@@ -8,10 +8,13 @@ spec:
   - name: no-resource
     rules:
     - alert: WorkloadWithoutResources
-      expr: workloads_no_resources_total > 0
+      expr: workload_no_resources > 0
       for: 15m
       labels:
         severity: warning
+        namespace: '{{ $labels.namespace }}'
+        app: '{{ $labels.app }}'
+        kind: '{{ $labels.kind }}'
       annotations:
-        summary: "Workload without resource requests or limits"
-        description: "Some workloads lack resource requests or limits."
+        summary: "{{ $labels.kind }} {{ $labels.app }} lacks resources"
+        description: "Workload {{ $labels.app }} in namespace {{ $labels.namespace }} has no resource requests or limits."
