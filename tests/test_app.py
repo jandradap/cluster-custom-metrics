@@ -2,6 +2,8 @@ import os
 import pytest
 from unittest import mock
 from app.app import create_app
+from app import app as app_module
+from prometheus_client import generate_latest
 import time
 
 @pytest.fixture
@@ -126,3 +128,36 @@ def test_health_endpoint(client):
     response = client.get("/healthz")
     assert response.status_code == 200
     assert response.data.decode("utf-8") == "OK"
+
+
+@mock.patch("app.app.Timer")
+@mock.patch("app.app.get_cert_expiry")
+@mock.patch("subprocess.check_output")
+def test_workloads_processed_once(mock_check_output, mock_cert, mock_timer, client):
+    deploy_json = '{"items":[{"metadata":{"namespace":"ns1","name":"app1"},"spec":{"replicas":1,"template":{"spec":{"serviceAccountName":"sa1","containers":[{"name":"c1"}]}}}}]}'
+    sts_json = '{"items":[]}'
+    pvc_json = '{"items":[]}'
+    pv_json = '{"items":[]}'
+    scc_json = '{"items":[{"metadata":{"name":"privileged"},"users":["system:serviceaccount:ns1:sa1"]}]}'
+    route_json = '{"items":[]}'
+
+    mock_cert.return_value = int(time.time()) + 60 * 86400
+    mock_check_output.side_effect = [
+        '192.168.1.100\n192.168.1.101',  # egressip
+        'InternalIP:node1\nInternalIP:node2',  # nodes
+        'ns1',  # namespaces
+        '',  # networkpolicy
+        '',  # resourcequota
+        pvc_json,
+        pv_json,
+        deploy_json,
+        sts_json,
+        scc_json,
+        route_json,
+    ]
+
+    app_module.update_metrics()
+    metrics = generate_latest(app_module.registry).decode("utf-8")
+    expected_label = 'workload_single_replica{app="app1",kind="deployment",namespace="ns1"} 1.0'
+    assert "workloads_single_replica_total 1.0" in metrics
+    assert metrics.count(expected_label) == 1

@@ -301,9 +301,6 @@ def update_metrics():
         process_workloads(deploys, "deployment")
         process_workloads(sts, "statefulset")
 
-        process_workloads(deploys, "deployment")
-        process_workloads(sts, "statefulset")
-
     if enabled_features.get("single_replica"):
         cache_results["single_replica"] = single_replica
         workload_single_replica_total.set(len(single_replica))
