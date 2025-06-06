@@ -10,6 +10,13 @@ def client():
     app.config['TESTING'] = True
     return app.test_client()
 
+@pytest.fixture
+def client_disabled():
+    os.environ["CONFIG_PATH"] = "tests/config_disabled.json"
+    app = create_app("tests/config_disabled.json")
+    app.config['TESTING'] = True
+    return app.test_client()
+
 @mock.patch("subprocess.check_output")
 def test_metrics(mock_check_output, client):
     pvc_json = b'{"items":[{"metadata":{"namespace":"ns1","name":"pvc1"},"status":{"phase":"Pending"}},{"metadata":{"namespace":"ns1","name":"pvc2"},"status":{"phase":"Lost"}}]}'
@@ -79,6 +86,25 @@ def test_metrics_namespace_filtering(mock_check_output, client):
     body = response.data.decode("utf-8")
     assert "namespace_without_networkpolicy" in body
     assert "openshift-monitoring" not in body  # filtered namespace
+
+
+@mock.patch("subprocess.check_output")
+def test_feature_toggle(mock_check_output, client_disabled):
+    mock_check_output.side_effect = [
+        b"192.168.1.10",  # egressip
+        b"node1",        # nodes
+    ]
+
+    response = client_disabled.get("/metrics")
+    assert response.status_code == 200
+    body = response.data.decode("utf-8")
+    # Disabled metrics should report zero
+    assert "pv_unbound_total 0.0" in body
+    assert "pvc_pending_total 0.0" in body
+    assert "workloads_single_replica_total 0.0" in body
+    assert "privileged_serviceaccount_total 0.0" in body
+    # IP metrics still available
+    assert "ip_pool_total" in body
 
 def test_config_file_loaded(client):
     config_path = os.environ.get("CONFIG_PATH")
