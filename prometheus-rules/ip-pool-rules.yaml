@@ -1,0 +1,25 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ip-pool-rules
+  namespace: cluster-monitoring
+spec:
+  groups:
+  - name: ip-pool
+    rules:
+    - alert: IPPoolUsageHigh
+      expr: ip_pool_used / ip_pool_total > 0.75
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: "IP pool usage high"
+        description: "More than 75% of the IP pool is allocated."
+    - alert: IPPoolNearlyExhausted
+      expr: ip_pool_used / ip_pool_total > 0.9
+      for: 10m
+      labels:
+        severity: critical
+      annotations:
+        summary: "IP pool almost exhausted"
+        description: "Less than 10% of IPs remain free in the VLAN."

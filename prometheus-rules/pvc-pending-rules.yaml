@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: pvc-pending-rules
+  namespace: cluster-monitoring
+spec:
+  groups:
+  - name: pvc-pending
+    rules:
+    - alert: PendingPVC
+      expr: pvc_pending > 0
+      for: 10m
+      labels:
+        severity: warning
+        namespace: '{{ $labels.namespace }}'
+        pvc: '{{ $labels.pvc }}'
+      annotations:
+        summary: "PVC {{ $labels.pvc }} pending in {{ $labels.namespace }}"
+        description: "PersistentVolumeClaim {{ $labels.pvc }} in namespace {{ $labels.namespace }} is stuck in Pending state."

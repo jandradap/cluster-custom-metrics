@@ -1,0 +1,21 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: privileged-sa-rules
+  namespace: cluster-monitoring
+spec:
+  groups:
+  - name: privileged-serviceaccount
+    rules:
+    - alert: PrivilegedServiceAccount
+      expr: privileged_serviceaccount > 0
+      for: 15m
+      labels:
+        severity: warning
+        namespace: '{{ $labels.namespace }}'
+        app: '{{ $labels.app }}'
+        serviceaccount: '{{ $labels.serviceaccount }}'
+        scc: '{{ $labels.scc }}'
+      annotations:
+        summary: "Privileged SA {{ $labels.serviceaccount }} in {{ $labels.namespace }}"
+        description: "Workload {{ $labels.app }} in namespace {{ $labels.namespace }} uses service account {{ $labels.serviceaccount }} with SCC {{ $labels.scc }}."

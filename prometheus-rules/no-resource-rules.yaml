@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: no-resource-rules
+  namespace: cluster-monitoring
+spec:
+  groups:
+  - name: no-resource
+    rules:
+    - alert: WorkloadWithoutResources
+      expr: workload_no_resources > 0
+      for: 15m
+      labels:
+        severity: warning
+        namespace: '{{ $labels.namespace }}'
+        app: '{{ $labels.app }}'
+        kind: '{{ $labels.kind }}'
+      annotations:
+        summary: "{{ $labels.kind }} {{ $labels.app }} lacks resources"
+        description: "Workload {{ $labels.app }} in namespace {{ $labels.namespace }} has no resource requests or limits."

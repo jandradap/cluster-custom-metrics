@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: resourcequota-rules
+  namespace: cluster-monitoring
+spec:
+  groups:
+  - name: resourcequota
+    rules:
+    - alert: NamespaceWithoutResourceQuota
+      expr: namespace_without_resourcequota > 0
+      for: 5m
+      labels:
+        severity: warning
+        namespace: '{{ $labels.namespace }}'
+      annotations:
+        summary: "Namespace {{ $labels.namespace }} missing ResourceQuota"
+        description: "Namespace {{ $labels.namespace }} does not have any ResourceQuota defined."

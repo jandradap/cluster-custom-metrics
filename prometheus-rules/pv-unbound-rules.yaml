@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: pv-unbound-rules
+  namespace: cluster-monitoring
+spec:
+  groups:
+  - name: pv-unbound
+    rules:
+    - alert: UnboundPersistentVolume
+      expr: pv_unbound > 0
+      for: 10m
+      labels:
+        severity: warning
+        pv: '{{ $labels.pv }}'
+      annotations:
+        summary: "PV {{ $labels.pv }} is unbound"
+        description: "PersistentVolume {{ $labels.pv }} is not bound to any PVC."

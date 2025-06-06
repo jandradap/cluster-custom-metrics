@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: single-replica-rules
+  namespace: cluster-monitoring
+spec:
+  groups:
+  - name: single-replica
+    rules:
+    - alert: SingleReplicaWorkload
+      expr: workload_single_replica > 0
+      for: 15m
+      labels:
+        severity: warning
+        namespace: '{{ $labels.namespace }}'
+        app: '{{ $labels.app }}'
+        kind: '{{ $labels.kind }}'
+      annotations:
+        summary: "{{ $labels.kind }} {{ $labels.app }} in {{ $labels.namespace }} with one replica"
+        description: "Workload {{ $labels.app }} in namespace {{ $labels.namespace }} is running a single replica."
