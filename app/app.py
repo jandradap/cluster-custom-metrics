@@ -60,7 +60,7 @@ egressips_used = Gauge('egressips_used', 'IPs in use egress', registry=registry)
 nodesips_used = Gauge('nodesips_used', 'IPs in use nodes)', registry=registry)
 ns_without_np_total = Gauge('namespaces_without_networkpolicy_total', 'Total namespaces without NetworkPolicy', registry=registry)
 ns_without_np_label = Gauge('namespace_without_networkpolicy', 'Namespace without NetworkPolicy', ['namespace'], registry=registry)
-ns_quota_total = Gauge('namespaces_without_resourcequota_total', 'Total namespaces without ResourceQuotass', registry=registry)
+ns_quota_total = Gauge('namespaces_without_resourcequota_total', 'Total namespaces without ResourceQuotas', registry=registry)
 ns_quota_label = Gauge('namespace_without_resourcequota', 'Namespace without ResourceQuota', ['namespace'], registry=registry)
 
 # PVC metrics
