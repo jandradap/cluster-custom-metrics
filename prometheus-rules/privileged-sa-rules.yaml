@@ -1,0 +1,17 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: privileged-sa-rules
+  namespace: cluster-monitoring
+spec:
+  groups:
+  - name: privileged-serviceaccount
+    rules:
+    - alert: PrivilegedServiceAccount
+      expr: privileged_serviceaccount_total > 0
+      for: 15m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Privileged ServiceAccount in use"
+        description: "Workloads are running with privileged service accounts."
