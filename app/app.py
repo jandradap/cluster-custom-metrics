@@ -60,7 +60,7 @@ egressips_used = Gauge('egressips_used', 'IPs in use egress', registry=registry)
 nodesips_used = Gauge('nodesips_used', 'IPs in use nodes)', registry=registry)
 ns_without_np_total = Gauge('namespaces_without_networkpolicy_total', 'Total namespaces without NetworkPolicy', registry=registry)
 ns_without_np_label = Gauge('namespace_without_networkpolicy', 'Namespace without NetworkPolicy', ['namespace'], registry=registry)
-ns_quota_total = Gauge('namespaces_without_resourcequota_total', 'Total namespaces without ResourceQuotass', registry=registry)
+ns_quota_total = Gauge('namespaces_without_resourcequota_total', 'Total namespaces without ResourceQuotas', registry=registry)
 ns_quota_label = Gauge('namespace_without_resourcequota', 'Namespace without ResourceQuota', ['namespace'], registry=registry)
 
 # PVC metrics
@@ -285,21 +285,12 @@ def update_metrics():
                 replicas = it.get("spec", {}).get("replicas", 1)
                 sa = it.get("spec", {}).get("template", {}).get("spec", {}).get("serviceAccountName", "default")
                 containers = it.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
-                if enabled_features.get("single_replica") and replicas == 1 and not exclude_ns(ns, "single_replica"):
+                if enabled_features.get("single_replica") and replicas <= 2 and not exclude_ns(ns, "single_replica"):
                     single_replica.append({"namespace": ns, "name": name, "kind": kind})
-                missing = False
-                for c in containers:
-                    res = c.get("resources", {})
-                    if not res.get("requests") or not res.get("limits"):
-                        missing = True
-                        break
-                if enabled_features.get("no_resources") and missing and not exclude_ns(ns, "no_resources"):
+                if enabled_features.get("no_resources") and not exclude_ns(ns, "no_resources"):
                     no_resources.append({"namespace": ns, "name": name, "kind": kind})
                 if enabled_features.get("priv_sa") and not exclude_ns(ns, "priv_sa"):
                     workload_sa.append({"namespace": ns, "name": name, "sa": sa, "kind": kind})
-
-        process_workloads(deploys, "deployment")
-        process_workloads(sts, "statefulset")
 
         process_workloads(deploys, "deployment")
         process_workloads(sts, "statefulset")
@@ -338,13 +329,12 @@ def update_metrics():
         priv_list = []
         for w in workload_sa:
             key = (w["namespace"], w["sa"])
-            if key in privileged:
-                priv_list.append({
-                    "namespace": w["namespace"],
-                    "name": w["name"],
-                    "sa": w["sa"],
-                    "scc": privileged[key],
-                })
+            priv_list.append({
+                "namespace": w["namespace"],
+                "name": w["name"],
+                "sa": w["sa"],
+                "scc": privileged.get(key, "privileged"),
+            })
 
         cache_results["priv_sa"] = priv_list
         priv_sa_total.set(len(priv_list))
