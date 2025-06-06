@@ -51,14 +51,14 @@ This component is deployed as a Kubernetes Deployment and configured with a Conf
    cd cluster-custom-metrics
    ```
 
-2. Apply required manifests:
+2. Apply required manifests from the deploy directory:
 
    ```bash
-   oc apply -f manifests/namespace.yaml
-   oc apply -f manifests/configmap.yaml
-   oc apply -f manifests/deployment.yaml
-   oc apply -f manifests/service.yaml
-   oc apply -f manifests/servicemonitor.yaml
+   oc apply -f deploy/namespace.yaml
+   oc apply -f deploy/configmap.yaml
+   oc apply -f deploy/deployment.yaml
+   oc apply -f deploy/service.yaml
+   oc apply -f deploy/servicemonitor.yaml
    ```
 
 3. Verify the pod is running:
@@ -67,7 +67,7 @@ This component is deployed as a Kubernetes Deployment and configured with a Conf
    oc get pods -n cluster-monitoring
    ```
 
-4. User-workload-monitoring and grafana
+4. For user workload monitoring and Grafana configuration, see [grafana/Readme.md](grafana/Readme.md)
 
 ## Configuration
 
