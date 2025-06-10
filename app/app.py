@@ -105,8 +105,8 @@ routes_cert_expiring_total = Gauge(
     registry=registry)
 route_cert_expiry_timestamp = Gauge(
     'route_cert_expiry_timestamp',
-    'Expiration timestamp of route TLS certificate',
-    ['namespace', 'route', 'host'],
+    'Days until route TLS certificate expires (expiry_date label shows date)',
+    ['namespace', 'route', 'host', 'expiry_date'],
     registry=registry)
 
 def exclude_ns(ns, feature=None):
@@ -360,7 +360,14 @@ def update_metrics():
             if not cert:
                 continue
             expiry = get_cert_expiry(cert)
-            route_cert_expiry_timestamp.labels(namespace=ns, route=name, host=host).set(expiry)
+            expiry_date = datetime.datetime.fromtimestamp(expiry).strftime('%Y-%m-%d') if expiry else ''
+            days_left = int((expiry - now) // 86400) if expiry else 0
+            route_cert_expiry_timestamp.labels(
+                namespace=ns,
+                route=name,
+                host=host,
+                expiry_date=expiry_date,
+            ).set(days_left)
             if expiry and expiry - now <= days_threshold * 86400:
                 route_list.append({"namespace": ns, "name": name, "host": host, "expiry": expiry})
                 expiring += 1
