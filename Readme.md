@@ -120,7 +120,7 @@ The service exposes metrics at `http://<service-name>.<namespace>.svc.cluster.lo
 | `privileged_serviceaccount_total` | Workloads using privileged ServiceAccounts | - | `privileged_serviceaccount_total 1` |
 | `privileged_serviceaccount` | Workload with privileged SA and SCC | `namespace`,`app`,`serviceaccount`,`scc` | `privileged_serviceaccount{namespace="dev",app="web",serviceaccount="sa",scc="privileged"} 1` |
 | `routes_cert_expiring_total` | HTTPS routes with certificates nearing expiry | - | `routes_cert_expiring_total 1` |
-| `route_cert_expiry_timestamp` | Expiration time of route TLS certificate (unix) | `namespace`,`route`,`host` | `route_cert_expiry_timestamp{namespace="dev",route="web",host="web.example.com"} 1700000000` |
+| `route_cert_expiry_timestamp` | Days until route TLS certificate expiry (label `expiry_date` shows the date) | `namespace`,`route`,`host`,`expiry_date` | `route_cert_expiry_timestamp{namespace="dev",route="web",host="web.example.com",expiry_date="2025-06-30"} 120` |
 
 ## Contributing
 
