@@ -87,7 +87,8 @@ data:
         "pvc_pending": true,
         "single_replica": true,
         "no_resources": true,
-        "priv_sa": true
+        "priv_sa": true,
+        "no_antiaffinity": true
       },
       "update_seconds": 60,
       "scc_types": ["restricted", "anyuid", "hostaccess", "hostmount-anyuid", "privileged"]
@@ -118,6 +119,8 @@ The service exposes metrics at `http://<service-name>.<namespace>.svc.cluster.lo
 | `workload_single_replica` | Workload with one replica | `namespace`,`app`,`kind` | `workload_single_replica{namespace="dev",app="web",kind="deployment"} 1` |
 | `workloads_no_resources_total` | Workloads missing resource requests/limits | - | `workloads_no_resources_total 1` |
 | `workload_no_resources` | Workload without resources | `namespace`,`app`,`kind` | `workload_no_resources{namespace="dev",app="web",kind="statefulset"} 1` |
+| `workloads_no_antiaffinity_total` | Workloads lacking anti-affinity rules | - | `workloads_no_antiaffinity_total 1` |
+| `workload_no_antiaffinity` | Workload without anti-affinity | `namespace`,`app`,`kind` | `workload_no_antiaffinity{namespace="dev",app="web",kind="deployment"} 1` |
 | `privileged_serviceaccount_total` | Workloads using privileged ServiceAccounts | - | `privileged_serviceaccount_total 1` |
 | `privileged_serviceaccount` | Workload with privileged SA and SCC | `namespace`,`app`,`serviceaccount`,`scc` | `privileged_serviceaccount{namespace="dev",app="web",serviceaccount="sa",scc="privileged"} 1` |
 |  | *Service accounts referenced by `system:openshift:scc:<name>` RoleBindings or ClusterRoleBindings are also mapped to their SCC* | |

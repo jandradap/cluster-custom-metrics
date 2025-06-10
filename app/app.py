@@ -40,6 +40,7 @@ enabled_features = {
     "single_replica": True,
     "no_resources": True,
     "priv_sa": True,
+    "no_antiaffinity": True,
     "route_cert": True,
 }
 scc_types = ["restricted", "anyuid", "hostaccess", "hostmount-anyuid", "privileged"]
@@ -51,6 +52,7 @@ cache_results = {
     "single_replica": [],
     "no_resources": [],
     "priv_sa": [],
+    "no_antiaffinity": [],
     "route_cert": []
 }
 cache_ips = {"nodes": [], "egress": []}
@@ -87,6 +89,16 @@ workload_no_resources_total = Gauge(
 workload_no_resources_info = Gauge(
     'workload_no_resources',
     'Deployment/StatefulSet without resource requests/limits',
+    ['namespace', 'app', 'kind'], registry=registry)
+
+# Workloads missing anti-affinity rules
+workload_no_antiaffinity_total = Gauge(
+    'workloads_no_antiaffinity_total',
+    'Total Deployments/StatefulSets without anti-affinity rules',
+    registry=registry)
+workload_no_antiaffinity_info = Gauge(
+    'workload_no_antiaffinity',
+    'Deployment/StatefulSet without anti-affinity rules',
     ['namespace', 'app', 'kind'], registry=registry)
 
 # Privileged service accounts metrics
@@ -134,6 +146,7 @@ def home():
         pvc_pending=cache_results["pvc_pending"],
         single_replica=cache_results["single_replica"],
         no_resources=cache_results["no_resources"],
+        no_antiaffinity=cache_results["no_antiaffinity"],
         priv_sa=cache_results["priv_sa"],
         route_cert=cache_results["route_cert"],
         ips=ips,
@@ -271,10 +284,16 @@ def update_metrics():
         cache_results["pv_unbound"] = []
         pv_unbound_total.set(0)
 
-    workloads_enabled = enabled_features.get("single_replica") or enabled_features.get("no_resources") or enabled_features.get("priv_sa")
+    workloads_enabled = (
+        enabled_features.get("single_replica")
+        or enabled_features.get("no_resources")
+        or enabled_features.get("priv_sa")
+        or enabled_features.get("no_antiaffinity")
+    )
     single_replica = []
     no_resources = []
     workload_sa = []
+    no_antiaffinity = []
     if workloads_enabled:
         deploys = run_cmd_json("deployments", ["oc", "get", "deploy", "-A", "-o", "json"])
         sts = run_cmd_json("statefulsets", ["oc", "get", "statefulset", "-A", "-o", "json"])
@@ -286,12 +305,16 @@ def update_metrics():
                 replicas = it.get("spec", {}).get("replicas", 1)
                 sa = it.get("spec", {}).get("template", {}).get("spec", {}).get("serviceAccountName", "default")
                 containers = it.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
+                affinity = it.get("spec", {}).get("template", {}).get("spec", {}).get("affinity", {})
+                has_anti = bool(affinity.get("podAntiAffinity"))
                 if enabled_features.get("single_replica") and replicas <= 2 and not exclude_ns(ns, "single_replica"):
                     single_replica.append({"namespace": ns, "name": name, "kind": kind})
                 if enabled_features.get("no_resources") and not exclude_ns(ns, "no_resources"):
                     no_resources.append({"namespace": ns, "name": name, "kind": kind})
                 if enabled_features.get("priv_sa") and not exclude_ns(ns, "priv_sa"):
                     workload_sa.append({"namespace": ns, "name": name, "sa": sa, "kind": kind})
+                if enabled_features.get("no_antiaffinity") and not has_anti and not exclude_ns(ns, "no_antiaffinity"):
+                    no_antiaffinity.append({"namespace": ns, "name": name, "kind": kind})
 
         process_workloads(deploys, "deployment")
         process_workloads(sts, "statefulset")
@@ -313,6 +336,17 @@ def update_metrics():
     else:
         cache_results["no_resources"] = []
         workload_no_resources_total.set(0)
+
+    if enabled_features.get("no_antiaffinity"):
+        cache_results["no_antiaffinity"] = no_antiaffinity
+        workload_no_antiaffinity_total.set(len(no_antiaffinity))
+        for w in no_antiaffinity:
+            workload_no_antiaffinity_info.labels(
+                namespace=w["namespace"], app=w["name"], kind=w["kind"]
+            ).set(1)
+    else:
+        cache_results["no_antiaffinity"] = []
+        workload_no_antiaffinity_total.set(0)
 
     if enabled_features.get("priv_sa"):
         sccs = run_cmd_json("scc", ["oc", "get", "scc", "-o", "json"])
@@ -429,6 +463,7 @@ def create_app(config_path=os.getenv("CONFIG_PATH", "config.json")):
         "pvc_pending": [],
         "single_replica": [],
         "no_resources": [],
+        "no_antiaffinity": [],
         "priv_sa": [],
         "route_cert": []
     })

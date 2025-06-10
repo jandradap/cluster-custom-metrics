@@ -46,6 +46,7 @@ def test_update_metrics(mock_check_output, mock_cert, mock_timer):
     assert app_module.pvc_pending_total._value.get() == 1
     assert app_module.workload_single_replica_total._value.get() == 2
     assert app_module.workload_no_resources_total._value.get() == 2
+    assert app_module.workload_no_antiaffinity_total._value.get() == 2
     assert app_module.priv_sa_total._value.get() == 2
     assert app_module.routes_cert_expiring_total._value.get() == 1
 
