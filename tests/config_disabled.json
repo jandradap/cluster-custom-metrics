@@ -22,5 +22,6 @@
     "route_cert": false
   },
   "update_seconds": 60,
-  "days": 180
+  "days": 180,
+  "scc_types": ["restricted", "anyuid", "hostaccess", "hostmount-anyuid", "privileged"]
 }

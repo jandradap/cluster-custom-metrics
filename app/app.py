@@ -42,6 +42,7 @@ enabled_features = {
     "priv_sa": True,
     "route_cert": True,
 }
+scc_types = ["restricted", "anyuid", "hostaccess", "hostmount-anyuid", "privileged"]
 cache_results = {
     "np": [],
     "quota": [],
@@ -105,8 +106,8 @@ routes_cert_expiring_total = Gauge(
     registry=registry)
 route_cert_expiry_timestamp = Gauge(
     'route_cert_expiry_timestamp',
-    'Expiration timestamp of route TLS certificate',
-    ['namespace', 'route', 'host'],
+    'Days until route TLS certificate expires (expiry_date label shows date)',
+    ['namespace', 'route', 'host', 'expiry_date'],
     registry=registry)
 
 def exclude_ns(ns, feature=None):
@@ -315,25 +316,54 @@ def update_metrics():
 
     if enabled_features.get("priv_sa"):
         sccs = run_cmd_json("scc", ["oc", "get", "scc", "-o", "json"])
-        privileged = {}
+        rbs = run_cmd_json("rolebindings", ["oc", "get", "rolebinding", "-A", "-o", "json"])
+        crbs = run_cmd_json("clusterrolebindings", ["oc", "get", "clusterrolebinding", "-o", "json"])
+
+        def parse_scc_from_role(name):
+            prefix = "system:openshift:scc:"
+            if name and name.startswith(prefix):
+                return name[len(prefix):]
+            return None
+
+        sa_scc = {}
         for scc in sccs.get("items", []):
             scc_name = scc.get("metadata", {}).get("name")
-            if scc_name and scc_name.startswith("restricted"):
-                continue
             for user in scc.get("users", []) or []:
                 if user.startswith("system:serviceaccount:"):
                     parts = user.split(":")
                     if len(parts) == 4:
-                        privileged[(parts[2], parts[3])] = scc_name
+                        sa_scc[(parts[2], parts[3])] = scc_name
+
+        for rb in rbs.get("items", []):
+            scc_name = parse_scc_from_role(rb.get("roleRef", {}).get("name"))
+            if not scc_name:
+                continue
+            ns = rb.get("metadata", {}).get("namespace")
+            for subj in rb.get("subjects", []) or []:
+                if subj.get("kind") == "ServiceAccount":
+                    sa_ns = subj.get("namespace", ns)
+                    sa_scc[(sa_ns, subj.get("name"))] = scc_name
+
+        for crb in crbs.get("items", []):
+            scc_name = parse_scc_from_role(crb.get("roleRef", {}).get("name"))
+            if not scc_name:
+                continue
+            for subj in crb.get("subjects", []) or []:
+                if subj.get("kind") == "ServiceAccount":
+                    sa_ns = subj.get("namespace")
+                    sa_scc[(sa_ns, subj.get("name"))] = scc_name
 
         priv_list = []
         for w in workload_sa:
             key = (w["namespace"], w["sa"])
+            scc_name = sa_scc.get(key, "restricted")
+            if scc_types and scc_name not in scc_types:
+                continue
             priv_list.append({
                 "namespace": w["namespace"],
                 "name": w["name"],
                 "sa": w["sa"],
-                "scc": privileged.get(key, "privileged"),
+                "scc": scc_name,
             })
 
         cache_results["priv_sa"] = priv_list
@@ -360,7 +390,14 @@ def update_metrics():
             if not cert:
                 continue
             expiry = get_cert_expiry(cert)
-            route_cert_expiry_timestamp.labels(namespace=ns, route=name, host=host).set(expiry)
+            expiry_date = datetime.datetime.fromtimestamp(expiry).strftime('%Y-%m-%d') if expiry else ''
+            days_left = int((expiry - now) // 86400) if expiry else 0
+            route_cert_expiry_timestamp.labels(
+                namespace=ns,
+                route=name,
+                host=host,
+                expiry_date=expiry_date,
+            ).set(days_left)
             if expiry and expiry - now <= days_threshold * 86400:
                 route_list.append({"namespace": ns, "name": name, "host": host, "expiry": expiry})
                 expiring += 1
@@ -373,7 +410,7 @@ def update_metrics():
     Timer(update_seconds, update_metrics).start()
 
 def create_app(config_path=os.getenv("CONFIG_PATH", "config.json")):
-    global subnet_cidr, exclude_ns_patterns, feature_ns_exclusions, cache_results, update_seconds, enabled_features, days_threshold
+    global subnet_cidr, exclude_ns_patterns, feature_ns_exclusions, cache_results, update_seconds, enabled_features, days_threshold, scc_types
 
     with open(config_path) as f:
         config = json.load(f)
@@ -384,6 +421,7 @@ def create_app(config_path=os.getenv("CONFIG_PATH", "config.json")):
     enabled_features = config.get("enabled_features", enabled_features)
     update_seconds = int(config.get("update_seconds", 60))
     days_threshold = int(config.get("days", days_threshold))
+    scc_types = config.get("scc_types", scc_types)
     cache_results.update({
         "np": [],
         "quota": [],
