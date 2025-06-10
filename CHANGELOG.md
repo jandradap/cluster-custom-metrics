@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Initial changelog file.
 * Refactored README with project description, images, and usage.
 * CONTRIBUTING and TODO markdown files.
+* Detection of workloads without anti-affinity rules.
 
 ### Planned
 

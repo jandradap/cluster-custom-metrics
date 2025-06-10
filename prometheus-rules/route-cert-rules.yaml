@@ -8,7 +8,7 @@ spec:
   - name: route-cert-expiry
     rules:
     - alert: RouteCertificateExpiringSoon
-      expr: (route_cert_expiry_timestamp - time()) < 15552000
+      expr: route_cert_expiry_timestamp < 180
       for: 10m
       labels:
         severity: warning

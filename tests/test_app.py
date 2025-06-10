@@ -53,6 +53,7 @@ def test_metrics(mock_check_output, mock_cert, client):
     assert b'pvc_pending_total' in response.data
     assert b'workloads_single_replica_total' in response.data
     assert b'workloads_no_resources_total' in response.data
+    assert b'workloads_no_antiaffinity_total' in response.data
     assert b'privileged_serviceaccount_total' in response.data
     assert b'routes_cert_expiring_total' in response.data
 
@@ -114,6 +115,7 @@ def test_feature_toggle(mock_check_output, client_disabled):
     assert "pv_unbound_total 0.0" in body
     assert "pvc_pending_total 0.0" in body
     assert "workloads_single_replica_total 0.0" in body
+    assert "workloads_no_antiaffinity_total 0.0" in body
     assert "privileged_serviceaccount_total 0.0" in body
     assert "routes_cert_expiring_total 0.0" in body
     # IP metrics still available
@@ -139,6 +141,8 @@ def test_workloads_processed_once(mock_check_output, mock_cert, mock_timer, clie
     pvc_json = '{"items":[]}'
     pv_json = '{"items":[]}'
     scc_json = '{"items":[{"metadata":{"name":"privileged"},"users":["system:serviceaccount:ns1:sa1"]}]}'
+    rb_json = '{"items":[{"metadata":{"namespace":"ns1"},"roleRef":{"name":"system:openshift:scc:privileged"},"subjects":[{"kind":"ServiceAccount","name":"sa1"}]}]}'
+    crb_json = '{"items":[]}'
     route_json = '{"items":[]}'
 
     mock_cert.return_value = int(time.time()) + 60 * 86400
@@ -153,6 +157,8 @@ def test_workloads_processed_once(mock_check_output, mock_cert, mock_timer, clie
         deploy_json,
         sts_json,
         scc_json,
+        rb_json,
+        crb_json,
         route_json,
     ]
 
@@ -161,3 +167,6 @@ def test_workloads_processed_once(mock_check_output, mock_cert, mock_timer, clie
     expected_label = 'workload_single_replica{app="app1",kind="deployment",namespace="ns1"} 1.0'
     assert "workloads_single_replica_total 1.0" in metrics
     assert metrics.count(expected_label) == 1
+    expected_aff_label = 'workload_no_antiaffinity{app="app1",kind="deployment",namespace="ns1"} 1.0'
+    assert "workloads_no_antiaffinity_total 1.0" in metrics
+    assert metrics.count(expected_aff_label) == 1

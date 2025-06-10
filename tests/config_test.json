@@ -10,6 +10,7 @@
     "single_replica": [],
     "no_resources": [],
     "priv_sa": [],
+    "no_antiaffinity": [],
     "route_cert": []
   },
   "enabled_features": {
@@ -20,8 +21,10 @@
     "single_replica": true,
     "no_resources": true,
     "priv_sa": true,
+    "no_antiaffinity": true,
     "route_cert": true
   },
   "update_seconds": 60,
-  "days": 180
+  "days": 180,
+  "scc_types": ["restricted", "anyuid", "hostaccess", "hostmount-anyuid", "privileged"]
 }

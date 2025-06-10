@@ -40,8 +40,10 @@ enabled_features = {
     "single_replica": True,
     "no_resources": True,
     "priv_sa": True,
+    "no_antiaffinity": True,
     "route_cert": True,
 }
+scc_types = ["restricted", "anyuid", "hostaccess", "hostmount-anyuid", "privileged"]
 cache_results = {
     "np": [],
     "quota": [],
@@ -50,6 +52,7 @@ cache_results = {
     "single_replica": [],
     "no_resources": [],
     "priv_sa": [],
+    "no_antiaffinity": [],
     "route_cert": []
 }
 cache_ips = {"nodes": [], "egress": []}
@@ -88,6 +91,16 @@ workload_no_resources_info = Gauge(
     'Deployment/StatefulSet without resource requests/limits',
     ['namespace', 'app', 'kind'], registry=registry)
 
+# Workloads missing anti-affinity rules
+workload_no_antiaffinity_total = Gauge(
+    'workloads_no_antiaffinity_total',
+    'Total Deployments/StatefulSets without anti-affinity rules',
+    registry=registry)
+workload_no_antiaffinity_info = Gauge(
+    'workload_no_antiaffinity',
+    'Deployment/StatefulSet without anti-affinity rules',
+    ['namespace', 'app', 'kind'], registry=registry)
+
 # Privileged service accounts metrics
 priv_sa_total = Gauge(
     'privileged_serviceaccount_total',
@@ -105,8 +118,8 @@ routes_cert_expiring_total = Gauge(
     registry=registry)
 route_cert_expiry_timestamp = Gauge(
     'route_cert_expiry_timestamp',
-    'Expiration timestamp of route TLS certificate',
-    ['namespace', 'route', 'host'],
+    'Days until route TLS certificate expires (expiry_date label shows date)',
+    ['namespace', 'route', 'host', 'expiry_date'],
     registry=registry)
 
 def exclude_ns(ns, feature=None):
@@ -133,6 +146,7 @@ def home():
         pvc_pending=cache_results["pvc_pending"],
         single_replica=cache_results["single_replica"],
         no_resources=cache_results["no_resources"],
+        no_antiaffinity=cache_results["no_antiaffinity"],
         priv_sa=cache_results["priv_sa"],
         route_cert=cache_results["route_cert"],
         ips=ips,
@@ -270,10 +284,16 @@ def update_metrics():
         cache_results["pv_unbound"] = []
         pv_unbound_total.set(0)
 
-    workloads_enabled = enabled_features.get("single_replica") or enabled_features.get("no_resources") or enabled_features.get("priv_sa")
+    workloads_enabled = (
+        enabled_features.get("single_replica")
+        or enabled_features.get("no_resources")
+        or enabled_features.get("priv_sa")
+        or enabled_features.get("no_antiaffinity")
+    )
     single_replica = []
     no_resources = []
     workload_sa = []
+    no_antiaffinity = []
     if workloads_enabled:
         deploys = run_cmd_json("deployments", ["oc", "get", "deploy", "-A", "-o", "json"])
         sts = run_cmd_json("statefulsets", ["oc", "get", "statefulset", "-A", "-o", "json"])
@@ -285,12 +305,16 @@ def update_metrics():
                 replicas = it.get("spec", {}).get("replicas", 1)
                 sa = it.get("spec", {}).get("template", {}).get("spec", {}).get("serviceAccountName", "default")
                 containers = it.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
+                affinity = it.get("spec", {}).get("template", {}).get("spec", {}).get("affinity", {})
+                has_anti = bool(affinity.get("podAntiAffinity"))
                 if enabled_features.get("single_replica") and replicas <= 2 and not exclude_ns(ns, "single_replica"):
                     single_replica.append({"namespace": ns, "name": name, "kind": kind})
                 if enabled_features.get("no_resources") and not exclude_ns(ns, "no_resources"):
                     no_resources.append({"namespace": ns, "name": name, "kind": kind})
                 if enabled_features.get("priv_sa") and not exclude_ns(ns, "priv_sa"):
                     workload_sa.append({"namespace": ns, "name": name, "sa": sa, "kind": kind})
+                if enabled_features.get("no_antiaffinity") and not has_anti and not exclude_ns(ns, "no_antiaffinity"):
+                    no_antiaffinity.append({"namespace": ns, "name": name, "kind": kind})
 
         process_workloads(deploys, "deployment")
         process_workloads(sts, "statefulset")
@@ -313,27 +337,67 @@ def update_metrics():
         cache_results["no_resources"] = []
         workload_no_resources_total.set(0)
 
+    if enabled_features.get("no_antiaffinity"):
+        cache_results["no_antiaffinity"] = no_antiaffinity
+        workload_no_antiaffinity_total.set(len(no_antiaffinity))
+        for w in no_antiaffinity:
+            workload_no_antiaffinity_info.labels(
+                namespace=w["namespace"], app=w["name"], kind=w["kind"]
+            ).set(1)
+    else:
+        cache_results["no_antiaffinity"] = []
+        workload_no_antiaffinity_total.set(0)
+
     if enabled_features.get("priv_sa"):
         sccs = run_cmd_json("scc", ["oc", "get", "scc", "-o", "json"])
-        privileged = {}
+        rbs = run_cmd_json("rolebindings", ["oc", "get", "rolebinding", "-A", "-o", "json"])
+        crbs = run_cmd_json("clusterrolebindings", ["oc", "get", "clusterrolebinding", "-o", "json"])
+
+        def parse_scc_from_role(name):
+            prefix = "system:openshift:scc:"
+            if name and name.startswith(prefix):
+                return name[len(prefix):]
+            return None
+
+        sa_scc = {}
         for scc in sccs.get("items", []):
             scc_name = scc.get("metadata", {}).get("name")
-            if scc_name and scc_name.startswith("restricted"):
-                continue
             for user in scc.get("users", []) or []:
                 if user.startswith("system:serviceaccount:"):
                     parts = user.split(":")
                     if len(parts) == 4:
-                        privileged[(parts[2], parts[3])] = scc_name
+                        sa_scc[(parts[2], parts[3])] = scc_name
+
+        for rb in rbs.get("items", []):
+            scc_name = parse_scc_from_role(rb.get("roleRef", {}).get("name"))
+            if not scc_name:
+                continue
+            ns = rb.get("metadata", {}).get("namespace")
+            for subj in rb.get("subjects", []) or []:
+                if subj.get("kind") == "ServiceAccount":
+                    sa_ns = subj.get("namespace", ns)
+                    sa_scc[(sa_ns, subj.get("name"))] = scc_name
+
+        for crb in crbs.get("items", []):
+            scc_name = parse_scc_from_role(crb.get("roleRef", {}).get("name"))
+            if not scc_name:
+                continue
+            for subj in crb.get("subjects", []) or []:
+                if subj.get("kind") == "ServiceAccount":
+                    sa_ns = subj.get("namespace")
+                    sa_scc[(sa_ns, subj.get("name"))] = scc_name
 
         priv_list = []
         for w in workload_sa:
             key = (w["namespace"], w["sa"])
+            scc_name = sa_scc.get(key, "restricted")
+            if scc_types and scc_name not in scc_types:
+                continue
             priv_list.append({
                 "namespace": w["namespace"],
                 "name": w["name"],
                 "sa": w["sa"],
-                "scc": privileged.get(key, "privileged"),
+                "scc": scc_name,
             })
 
         cache_results["priv_sa"] = priv_list
@@ -360,7 +424,14 @@ def update_metrics():
             if not cert:
                 continue
             expiry = get_cert_expiry(cert)
-            route_cert_expiry_timestamp.labels(namespace=ns, route=name, host=host).set(expiry)
+            expiry_date = datetime.datetime.fromtimestamp(expiry).strftime('%Y-%m-%d') if expiry else ''
+            days_left = int((expiry - now) // 86400) if expiry else 0
+            route_cert_expiry_timestamp.labels(
+                namespace=ns,
+                route=name,
+                host=host,
+                expiry_date=expiry_date,
+            ).set(days_left)
             if expiry and expiry - now <= days_threshold * 86400:
                 route_list.append({"namespace": ns, "name": name, "host": host, "expiry": expiry})
                 expiring += 1
@@ -373,7 +444,7 @@ def update_metrics():
     Timer(update_seconds, update_metrics).start()
 
 def create_app(config_path=os.getenv("CONFIG_PATH", "config.json")):
-    global subnet_cidr, exclude_ns_patterns, feature_ns_exclusions, cache_results, update_seconds, enabled_features, days_threshold
+    global subnet_cidr, exclude_ns_patterns, feature_ns_exclusions, cache_results, update_seconds, enabled_features, days_threshold, scc_types
 
     with open(config_path) as f:
         config = json.load(f)
@@ -384,6 +455,7 @@ def create_app(config_path=os.getenv("CONFIG_PATH", "config.json")):
     enabled_features = config.get("enabled_features", enabled_features)
     update_seconds = int(config.get("update_seconds", 60))
     days_threshold = int(config.get("days", days_threshold))
+    scc_types = config.get("scc_types", scc_types)
     cache_results.update({
         "np": [],
         "quota": [],
@@ -391,6 +463,7 @@ def create_app(config_path=os.getenv("CONFIG_PATH", "config.json")):
         "pvc_pending": [],
         "single_replica": [],
         "no_resources": [],
+        "no_antiaffinity": [],
         "priv_sa": [],
         "route_cert": []
     })
