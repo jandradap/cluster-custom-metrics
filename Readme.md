@@ -89,9 +89,10 @@ data:
         "no_resources": true,
         "priv_sa": true
       },
-      "update_seconds": 60
+      "update_seconds": 60,
+      "scc_types": ["restricted", "anyuid", "hostaccess", "hostmount-anyuid", "privileged"]
     }
-```
+  ```
 
 ## Usage
 
