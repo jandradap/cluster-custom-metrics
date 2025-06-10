@@ -9,6 +9,7 @@
     "single_replica": [],
     "no_resources": [],
     "priv_sa": [],
+    "no_antiaffinity": [],
     "route_cert": []
   },
   "enabled_features": {
@@ -19,6 +20,7 @@
     "single_replica": false,
     "no_resources": false,
     "priv_sa": false,
+    "no_antiaffinity": false,
     "route_cert": false
   },
   "update_seconds": 60,
