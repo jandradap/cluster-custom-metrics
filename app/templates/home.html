@@ -200,6 +200,22 @@
     </div>
 
     <div class="section">
+      <h2>Workloads without anti-affinity</h2>
+      {% if no_antiaffinity %}
+      <table>
+        <thead><tr><th>Namespace</th><th>App</th><th>Kind</th></tr></thead>
+        <tbody>
+          {% for w in no_antiaffinity %}
+          <tr><td>{{ w.namespace }}</td><td>{{ w.name }}</td><td>{{ w.kind }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p><i>No workloads missing anti-affinity rules were found.</i></p>
+      {% endif %}
+    </div>
+
+    <div class="section">
       <h2>Privileged ServiceAccounts</h2>
       {% if priv_sa %}
       <table>
