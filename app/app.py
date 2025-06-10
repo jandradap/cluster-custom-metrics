@@ -316,6 +316,15 @@ def update_metrics():
 
     if enabled_features.get("priv_sa"):
         sccs = run_cmd_json("scc", ["oc", "get", "scc", "-o", "json"])
+        rbs = run_cmd_json("rolebindings", ["oc", "get", "rolebinding", "-A", "-o", "json"])
+        crbs = run_cmd_json("clusterrolebindings", ["oc", "get", "clusterrolebinding", "-o", "json"])
+
+        def parse_scc_from_role(name):
+            prefix = "system:openshift:scc:"
+            if name and name.startswith(prefix):
+                return name[len(prefix):]
+            return None
+
         sa_scc = {}
         for scc in sccs.get("items", []):
             scc_name = scc.get("metadata", {}).get("name")
@@ -324,6 +333,25 @@ def update_metrics():
                     parts = user.split(":")
                     if len(parts) == 4:
                         sa_scc[(parts[2], parts[3])] = scc_name
+
+        for rb in rbs.get("items", []):
+            scc_name = parse_scc_from_role(rb.get("roleRef", {}).get("name"))
+            if not scc_name:
+                continue
+            ns = rb.get("metadata", {}).get("namespace")
+            for subj in rb.get("subjects", []) or []:
+                if subj.get("kind") == "ServiceAccount":
+                    sa_ns = subj.get("namespace", ns)
+                    sa_scc[(sa_ns, subj.get("name"))] = scc_name
+
+        for crb in crbs.get("items", []):
+            scc_name = parse_scc_from_role(crb.get("roleRef", {}).get("name"))
+            if not scc_name:
+                continue
+            for subj in crb.get("subjects", []) or []:
+                if subj.get("kind") == "ServiceAccount":
+                    sa_ns = subj.get("namespace")
+                    sa_scc[(sa_ns, subj.get("name"))] = scc_name
 
         priv_list = []
         for w in workload_sa:

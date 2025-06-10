@@ -139,6 +139,8 @@ def test_workloads_processed_once(mock_check_output, mock_cert, mock_timer, clie
     pvc_json = '{"items":[]}'
     pv_json = '{"items":[]}'
     scc_json = '{"items":[{"metadata":{"name":"privileged"},"users":["system:serviceaccount:ns1:sa1"]}]}'
+    rb_json = '{"items":[{"metadata":{"namespace":"ns1"},"roleRef":{"name":"system:openshift:scc:privileged"},"subjects":[{"kind":"ServiceAccount","name":"sa1"}]}]}'
+    crb_json = '{"items":[]}'
     route_json = '{"items":[]}'
 
     mock_cert.return_value = int(time.time()) + 60 * 86400
@@ -153,6 +155,8 @@ def test_workloads_processed_once(mock_check_output, mock_cert, mock_timer, clie
         deploy_json,
         sts_json,
         scc_json,
+        rb_json,
+        crb_json,
         route_json,
     ]
 
