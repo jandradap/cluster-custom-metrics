@@ -42,6 +42,7 @@ enabled_features = {
     "priv_sa": True,
     "route_cert": True,
 }
+scc_types = ["restricted", "anyuid", "hostaccess", "hostmount-anyuid", "privileged"]
 cache_results = {
     "np": [],
     "quota": [],
@@ -315,25 +316,26 @@ def update_metrics():
 
     if enabled_features.get("priv_sa"):
         sccs = run_cmd_json("scc", ["oc", "get", "scc", "-o", "json"])
-        privileged = {}
+        sa_scc = {}
         for scc in sccs.get("items", []):
             scc_name = scc.get("metadata", {}).get("name")
-            if scc_name and scc_name.startswith("restricted"):
-                continue
             for user in scc.get("users", []) or []:
                 if user.startswith("system:serviceaccount:"):
                     parts = user.split(":")
                     if len(parts) == 4:
-                        privileged[(parts[2], parts[3])] = scc_name
+                        sa_scc[(parts[2], parts[3])] = scc_name
 
         priv_list = []
         for w in workload_sa:
             key = (w["namespace"], w["sa"])
+            scc_name = sa_scc.get(key, "restricted")
+            if scc_types and scc_name not in scc_types:
+                continue
             priv_list.append({
                 "namespace": w["namespace"],
                 "name": w["name"],
                 "sa": w["sa"],
-                "scc": privileged.get(key, "privileged"),
+                "scc": scc_name,
             })
 
         cache_results["priv_sa"] = priv_list
@@ -380,7 +382,7 @@ def update_metrics():
     Timer(update_seconds, update_metrics).start()
 
 def create_app(config_path=os.getenv("CONFIG_PATH", "config.json")):
-    global subnet_cidr, exclude_ns_patterns, feature_ns_exclusions, cache_results, update_seconds, enabled_features, days_threshold
+    global subnet_cidr, exclude_ns_patterns, feature_ns_exclusions, cache_results, update_seconds, enabled_features, days_threshold, scc_types
 
     with open(config_path) as f:
         config = json.load(f)
@@ -391,6 +393,7 @@ def create_app(config_path=os.getenv("CONFIG_PATH", "config.json")):
     enabled_features = config.get("enabled_features", enabled_features)
     update_seconds = int(config.get("update_seconds", 60))
     days_threshold = int(config.get("days", days_threshold))
+    scc_types = config.get("scc_types", scc_types)
     cache_results.update({
         "np": [],
         "quota": [],
