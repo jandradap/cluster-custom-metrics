@@ -44,11 +44,13 @@ def test_update_metrics(mock_check_output, mock_cert, mock_timer):
     assert app_module.ip_pool_total._value.get() == 254
     assert app_module.pv_unbound_total._value.get() == 1
     assert app_module.pvc_pending_total._value.get() == 1
-    assert app_module.workload_single_replica_total._value.get() == 2
-    assert app_module.workload_no_resources_total._value.get() == 2
+    assert app_module.workload_single_replica_total._value.get() == 1
+    assert app_module.workload_no_resources_total._value.get() == 1
     assert app_module.workload_no_antiaffinity_total._value.get() == 2
     assert app_module.priv_sa_total._value.get() == 2
-    assert app_module.routes_cert_expiring_total._value.get() == 1
+    assert app_module.routes_cert_expiring_total._value.get() == 0
 
     metrics = app_module.generate_latest(app_module.registry).decode("utf-8")
     assert 'serviceaccount="sa2"' in metrics
+    assert 'privileged_serviceaccount{app="app1",namespace="ns1",scc="privileged",serviceaccount="sa1"} 1.0' in metrics
+    assert 'privileged_serviceaccount{app="app2",namespace="ns1",scc="privileged",serviceaccount="sa2"} 1.0' in metrics

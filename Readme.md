@@ -115,10 +115,10 @@ The service exposes metrics at `http://<service-name>.<namespace>.svc.cluster.lo
 | `pv_unbound` | Specific unbound PV | `pv` | `pv_unbound{pv="pv1"} 1` |
 | `pvc_pending_total` | PVCs stuck in Pending state | - | `pvc_pending_total 2` |
 | `pvc_pending` | Specific pending PVC | `namespace`,`pvc` | `pvc_pending{namespace="dev",pvc="data"} 1` |
-| `workloads_single_replica_total` | Workloads running with a single replica | - | `workloads_single_replica_total 1` |
+| `workloads_single_replica_total` | Workloads running with fewer than 2 replicas | - | `workloads_single_replica_total 1` |
 | `workload_single_replica` | Workload with one replica | `namespace`,`app`,`kind` | `workload_single_replica{namespace="dev",app="web",kind="deployment"} 1` |
-| `workloads_no_resources_total` | Workloads missing resource requests/limits | - | `workloads_no_resources_total 1` |
-| `workload_no_resources` | Workload without resources | `namespace`,`app`,`kind` | `workload_no_resources{namespace="dev",app="web",kind="statefulset"} 1` |
+| `workloads_no_resources_total` | Workloads missing resource requests and limits | - | `workloads_no_resources_total 1` |
+| `workload_no_resources` | Workload without full resources | `namespace`,`app`,`kind` | `workload_no_resources{namespace="dev",app="web",kind="statefulset"} 1` |
 | `workloads_no_antiaffinity_total` | Workloads lacking anti-affinity rules | - | `workloads_no_antiaffinity_total 1` |
 | `workload_no_antiaffinity` | Workload without anti-affinity | `namespace`,`app`,`kind` | `workload_no_antiaffinity{namespace="dev",app="web",kind="deployment"} 1` |
 | `privileged_serviceaccount_total` | Workloads using privileged ServiceAccounts | - | `privileged_serviceaccount_total 1` |
