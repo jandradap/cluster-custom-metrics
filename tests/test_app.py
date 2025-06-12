@@ -170,3 +170,5 @@ def test_workloads_processed_once(mock_check_output, mock_cert, mock_timer, clie
     expected_aff_label = 'workload_no_antiaffinity{app="app1",kind="deployment",namespace="ns1"} 1.0'
     assert "workloads_no_antiaffinity_total 1.0" in metrics
     assert metrics.count(expected_aff_label) == 1
+    expected_priv = 'privileged_serviceaccount{app="app1",namespace="ns1",scc="privileged",serviceaccount="sa1"} 1.0'
+    assert expected_priv in metrics
