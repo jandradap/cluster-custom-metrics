@@ -307,10 +307,21 @@ def update_metrics():
                 containers = it.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
                 affinity = it.get("spec", {}).get("template", {}).get("spec", {}).get("affinity", {})
                 has_anti = bool(affinity.get("podAntiAffinity"))
-                if enabled_features.get("single_replica") and replicas <= 2 and not exclude_ns(ns, "single_replica"):
+                if (
+                    enabled_features.get("single_replica")
+                    and 0 < replicas < 2
+                    and not exclude_ns(ns, "single_replica")
+                ):
                     single_replica.append({"namespace": ns, "name": name, "kind": kind})
                 if enabled_features.get("no_resources") and not exclude_ns(ns, "no_resources"):
-                    no_resources.append({"namespace": ns, "name": name, "kind": kind})
+                    missing = False
+                    for c in containers:
+                        res = c.get("resources", {})
+                        if not (res.get("requests") and res.get("limits")):
+                            missing = True
+                            break
+                    if missing:
+                        no_resources.append({"namespace": ns, "name": name, "kind": kind})
                 if enabled_features.get("priv_sa") and not exclude_ns(ns, "priv_sa"):
                     workload_sa.append({"namespace": ns, "name": name, "sa": sa, "kind": kind})
                 if enabled_features.get("no_antiaffinity") and not has_anti and not exclude_ns(ns, "no_antiaffinity"):
@@ -360,6 +371,7 @@ def update_metrics():
             return None
 
         sa_scc = {}
+        ns_scc = {}
         for scc in sccs.get("items", []):
             scc_name = scc.get("metadata", {}).get("name")
             for user in scc.get("users", []) or []:
@@ -367,6 +379,12 @@ def update_metrics():
                     parts = user.split(":")
                     if len(parts) == 4:
                         sa_scc[(parts[2], parts[3])] = scc_name
+            for group in scc.get("groups", []) or []:
+                if group == "system:serviceaccounts":
+                    ns_scc["*"] = scc_name
+                elif group.startswith("system:serviceaccounts:"):
+                    ns = group.split(":", 2)[2]
+                    ns_scc[ns] = scc_name
 
         for rb in rbs.get("items", []):
             scc_name = parse_scc_from_role(rb.get("roleRef", {}).get("name"))
@@ -374,23 +392,55 @@ def update_metrics():
                 continue
             ns = rb.get("metadata", {}).get("namespace")
             for subj in rb.get("subjects", []) or []:
-                if subj.get("kind") == "ServiceAccount":
+                kind = subj.get("kind")
+                if kind == "ServiceAccount":
                     sa_ns = subj.get("namespace", ns)
                     sa_scc[(sa_ns, subj.get("name"))] = scc_name
+                elif kind == "User":
+                    name = subj.get("name", "")
+                    if name.startswith("system:serviceaccount:"):
+                        parts = name.split(":")
+                        if len(parts) == 4:
+                            sa_scc[(parts[2], parts[3])] = scc_name
+                elif kind == "Group":
+                    name = subj.get("name", "")
+                    if name == "system:serviceaccounts":
+                        ns_scc["*"] = scc_name
+                    elif name.startswith("system:serviceaccounts:"):
+                        grp_ns = name.split(":", 2)[2]
+                        ns_scc[grp_ns] = scc_name
 
         for crb in crbs.get("items", []):
             scc_name = parse_scc_from_role(crb.get("roleRef", {}).get("name"))
             if not scc_name:
                 continue
             for subj in crb.get("subjects", []) or []:
-                if subj.get("kind") == "ServiceAccount":
+                kind = subj.get("kind")
+                if kind == "ServiceAccount":
                     sa_ns = subj.get("namespace")
                     sa_scc[(sa_ns, subj.get("name"))] = scc_name
+                elif kind == "User":
+                    name = subj.get("name", "")
+                    if name.startswith("system:serviceaccount:"):
+                        parts = name.split(":")
+                        if len(parts) == 4:
+                            sa_scc[(parts[2], parts[3])] = scc_name
+                elif kind == "Group":
+                    name = subj.get("name", "")
+                    if name == "system:serviceaccounts":
+                        ns_scc["*"] = scc_name
+                    elif name.startswith("system:serviceaccounts:"):
+                        grp_ns = name.split(":", 2)[2]
+                        ns_scc[grp_ns] = scc_name
 
         priv_list = []
         for w in workload_sa:
             key = (w["namespace"], w["sa"])
-            scc_name = sa_scc.get(key, "restricted")
+            scc_name = sa_scc.get(key)
+            if not scc_name:
+                scc_name = ns_scc.get(w["namespace"]) or ns_scc.get("*")
+            if not scc_name:
+                scc_name = "restricted"
             if scc_types and scc_name not in scc_types:
                 continue
             priv_list.append({
@@ -421,7 +471,8 @@ def update_metrics():
             host = rt.get("spec", {}).get("host", "")
             tls = rt.get("spec", {}).get("tls") or {}
             cert = tls.get("certificate")
-            if not cert:
+            key = tls.get("key")
+            if not cert or not key:
                 continue
             expiry = get_cert_expiry(cert)
             expiry_date = datetime.datetime.fromtimestamp(expiry).strftime('%Y-%m-%d') if expiry else ''
