@@ -54,3 +54,60 @@ def test_update_metrics(mock_check_output, mock_cert, mock_timer):
     assert 'serviceaccount="sa2"' in metrics
     assert 'privileged_serviceaccount{app="app1",namespace="ns1",scc="privileged",serviceaccount="sa1"} 1.0' in metrics
     assert 'privileged_serviceaccount{app="app2",namespace="ns1",scc="privileged",serviceaccount="sa2"} 1.0' in metrics
+
+
+@mock.patch("app.app.Timer")
+@mock.patch("app.app.get_cert_expiry")
+@mock.patch("subprocess.check_output")
+def test_networkpolicy_metric_resets(mock_check_output, mock_cert, mock_timer):
+    pvc_json = b'{"items":[]}'
+    pv_json = b'{"items":[]}'
+    empty_json = b'{"items":[]}'
+
+    mock_timer.return_value.start.return_value = None
+    mock_cert.return_value = 0
+
+    first_side_effect = [
+        "",  # egressip
+        "",  # nodes
+        "ns1",  # namespaces
+        "",  # networkpolicy
+        "",  # resourcequota
+        pvc_json.decode(),
+        pv_json.decode(),
+        empty_json.decode(),  # deploy
+        empty_json.decode(),  # sts
+        empty_json.decode(),  # scc
+        empty_json.decode(),  # rb
+        empty_json.decode(),  # crb
+        empty_json.decode(),  # route
+    ]
+
+    second_side_effect = [
+        "",  # egressip
+        "",  # nodes
+        "ns1",  # namespaces
+        "np1",  # networkpolicy exists
+        "",  # resourcequota
+        pvc_json.decode(),
+        pv_json.decode(),
+        empty_json.decode(),
+        empty_json.decode(),
+        empty_json.decode(),
+        empty_json.decode(),
+        empty_json.decode(),
+        empty_json.decode(),
+    ]
+
+    mock_check_output.side_effect = first_side_effect
+    os.environ["CONFIG_PATH"] = "tests/config_test.json"
+    app_module.create_app("tests/config_test.json")
+    app_module.update_metrics()
+    metrics = generate_latest(app_module.registry).decode("utf-8")
+    assert 'namespace_without_networkpolicy{namespace="ns1"} 1.0' in metrics
+
+    mock_check_output.side_effect = second_side_effect
+    app_module.update_metrics()
+    metrics = generate_latest(app_module.registry).decode("utf-8")
+    assert 'namespace_without_networkpolicy{namespace="ns1"}' not in metrics
+    assert app_module.ns_without_np_total._value.get() == 0

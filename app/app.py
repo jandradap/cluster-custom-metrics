@@ -230,10 +230,14 @@ def update_metrics():
     if enabled_features.get("np"):
         ns_list_np = [ns for ns in ns_list if not exclude_ns(ns, "np")]
         without_np = [ns for ns in ns_list_np if not run_cmd(f"networkpolicy in {ns}", ["oc", "get", "networkpolicy", "-n", ns])]
-        cache_results["np"] = without_np
+        prev = set(cache_results.get("np", []))
+        current = set(without_np)
+        for ns in prev - current:
+            ns_without_np_label.remove(ns)
         ns_without_np_total.set(len(without_np))
         for ns in without_np:
             ns_without_np_label.labels(namespace=ns).set(1)
+        cache_results["np"] = without_np
     else:
         cache_results["np"] = []
         ns_without_np_total.set(0)
@@ -241,10 +245,14 @@ def update_metrics():
     if enabled_features.get("quota"):
         ns_list_quota = [ns for ns in ns_list if not exclude_ns(ns, "quota")]
         namespace_without_resourcequota = [ns for ns in ns_list_quota if not run_cmd(f"quotas in {ns}", ["oc", "get", "resourcequota", "-n", ns])]
-        cache_results["quota"] = namespace_without_resourcequota
+        prev = set(cache_results.get("quota", []))
+        current = set(namespace_without_resourcequota)
+        for ns in prev - current:
+            ns_quota_label.remove(ns)
         ns_quota_total.set(len(namespace_without_resourcequota))
         for ns in namespace_without_resourcequota:
             ns_quota_label.labels(namespace=ns).set(1)
+        cache_results["quota"] = namespace_without_resourcequota
     else:
         cache_results["quota"] = []
         ns_quota_total.set(0)
@@ -260,10 +268,14 @@ def update_metrics():
             phase = pvc.get("status", {}).get("phase", "").lower()
             if phase == "pending":
                 pvc_pending.append({"namespace": ns, "name": name})
-        cache_results["pvc_pending"] = pvc_pending
+        prev = {(p["namespace"], p["name"]) for p in cache_results.get("pvc_pending", [])}
+        current = {(p["namespace"], p["name"]) for p in pvc_pending}
+        for labels in prev - current:
+            pvc_pending_info.remove(*labels)
         pvc_pending_total.set(len(pvc_pending))
         for p in pvc_pending:
             pvc_pending_info.labels(namespace=p["namespace"], pvc=p["name"]).set(1)
+        cache_results["pvc_pending"] = pvc_pending
     else:
         cache_results["pvc_pending"] = []
         pvc_pending_total.set(0)
@@ -276,10 +288,14 @@ def update_metrics():
             phase = pv.get("status", {}).get("phase", "").lower()
             if phase != "bound":
                 pv_unbound.append({"name": name})
-        cache_results["pv_unbound"] = [p["name"] for p in pv_unbound]
+        prev = set(cache_results.get("pv_unbound", []))
+        current = {p["name"] for p in pv_unbound}
+        for pv_name in prev - current:
+            pv_unbound_info.remove(pv_name)
         pv_unbound_total.set(len(pv_unbound))
         for p in pv_unbound:
             pv_unbound_info.labels(pv=p["name"]).set(1)
+        cache_results["pv_unbound"] = [p["name"] for p in pv_unbound]
     else:
         cache_results["pv_unbound"] = []
         pv_unbound_total.set(0)
@@ -331,30 +347,42 @@ def update_metrics():
         process_workloads(sts, "statefulset")
 
     if enabled_features.get("single_replica"):
-        cache_results["single_replica"] = single_replica
+        prev = {(w["namespace"], w["name"], w["kind"]) for w in cache_results.get("single_replica", [])}
+        current = {(w["namespace"], w["name"], w["kind"]) for w in single_replica}
+        for labels in prev - current:
+            workload_single_replica_info.remove(*labels)
         workload_single_replica_total.set(len(single_replica))
         for w in single_replica:
             workload_single_replica_info.labels(namespace=w["namespace"], app=w["name"], kind=w["kind"]).set(1)
+        cache_results["single_replica"] = single_replica
     else:
         cache_results["single_replica"] = []
         workload_single_replica_total.set(0)
 
     if enabled_features.get("no_resources"):
-        cache_results["no_resources"] = no_resources
+        prev = {(w["namespace"], w["name"], w["kind"]) for w in cache_results.get("no_resources", [])}
+        current = {(w["namespace"], w["name"], w["kind"]) for w in no_resources}
+        for labels in prev - current:
+            workload_no_resources_info.remove(*labels)
         workload_no_resources_total.set(len(no_resources))
         for w in no_resources:
             workload_no_resources_info.labels(namespace=w["namespace"], app=w["name"], kind=w["kind"]).set(1)
+        cache_results["no_resources"] = no_resources
     else:
         cache_results["no_resources"] = []
         workload_no_resources_total.set(0)
 
     if enabled_features.get("no_antiaffinity"):
-        cache_results["no_antiaffinity"] = no_antiaffinity
+        prev = {(w["namespace"], w["name"], w["kind"]) for w in cache_results.get("no_antiaffinity", [])}
+        current = {(w["namespace"], w["name"], w["kind"]) for w in no_antiaffinity}
+        for labels in prev - current:
+            workload_no_antiaffinity_info.remove(*labels)
         workload_no_antiaffinity_total.set(len(no_antiaffinity))
         for w in no_antiaffinity:
             workload_no_antiaffinity_info.labels(
                 namespace=w["namespace"], app=w["name"], kind=w["kind"]
             ).set(1)
+        cache_results["no_antiaffinity"] = no_antiaffinity
     else:
         cache_results["no_antiaffinity"] = []
         workload_no_antiaffinity_total.set(0)
@@ -450,10 +478,14 @@ def update_metrics():
                 "scc": scc_name,
             })
 
-        cache_results["priv_sa"] = priv_list
+        prev = {(p["namespace"], p["name"], p["sa"], p["scc"]) for p in cache_results.get("priv_sa", [])}
+        current = {(p["namespace"], p["name"], p["sa"], p["scc"]) for p in priv_list}
+        for labels in prev - current:
+            priv_sa_info.remove(*labels)
         priv_sa_total.set(len(priv_list))
         for p in priv_list:
             priv_sa_info.labels(namespace=p["namespace"], app=p["name"], serviceaccount=p["sa"], scc=p["scc"]).set(1)
+        cache_results["priv_sa"] = priv_list
     else:
         cache_results["priv_sa"] = []
         priv_sa_total.set(0)
@@ -486,8 +518,21 @@ def update_metrics():
             if expiry and expiry - now <= days_threshold * 86400:
                 route_list.append({"namespace": ns, "name": name, "host": host, "expiry": expiry})
                 expiring += 1
-        cache_results["route_cert"] = sorted(route_list, key=lambda x: x["expiry"])
+        prev = {(r["namespace"], r["name"], r["host"], datetime.datetime.fromtimestamp(r["expiry"]).strftime('%Y-%m-%d')) for r in cache_results.get("route_cert", [])}
+        current = {(r["namespace"], r["name"], r["host"], datetime.datetime.fromtimestamp(r["expiry"]).strftime('%Y-%m-%d')) for r in route_list}
+        for labels in prev - current:
+            route_cert_expiry_timestamp.remove(*labels)
         routes_cert_expiring_total.set(expiring)
+        for r in route_list:
+            expiry_date = datetime.datetime.fromtimestamp(r["expiry"]).strftime('%Y-%m-%d') if r["expiry"] else ''
+            days_left = int((r["expiry"] - now) // 86400) if r["expiry"] else 0
+            route_cert_expiry_timestamp.labels(
+                namespace=r["namespace"],
+                route=r["name"],
+                host=r["host"],
+                expiry_date=expiry_date,
+            ).set(days_left)
+        cache_results["route_cert"] = sorted(route_list, key=lambda x: x["expiry"])
     else:
         cache_results["route_cert"] = []
         routes_cert_expiring_total.set(0)
