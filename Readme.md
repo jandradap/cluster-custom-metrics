@@ -127,6 +127,16 @@ The service exposes metrics at `http://<service-name>.<namespace>.svc.cluster.lo
 | `routes_cert_expiring_total` | HTTPS routes with certificates nearing expiry | - | `routes_cert_expiring_total 1` |
 | `route_cert_expiry_timestamp` | Days until route TLS certificate expiry (label `expiry_date` shows the date) | `namespace`,`route`,`host`,`expiry_date` | `route_cert_expiry_timestamp{namespace="dev",route="web",host="web.example.com",expiry_date="2025-06-30"} 120` |
 
+## Testing
+
+```bash
+pip install -r tests/requirements.txt
+PYTHONPATH=. pytest --cov=app tests/
+```
+
+These dependencies match those installed in `.github/workflows/ci.yml`.
+
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute.
