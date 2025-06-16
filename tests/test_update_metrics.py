@@ -191,4 +191,3 @@ def test_priv_sa_scc_filter(mock_check_output, mock_cert, mock_timer):
     app_module.update_metrics()
     metrics = generate_latest(app_module.registry).decode("utf-8")
     assert "privileged_serviceaccount_total 0.0" in metrics
-
