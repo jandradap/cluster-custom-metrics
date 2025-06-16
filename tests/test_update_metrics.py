@@ -125,3 +125,69 @@ def test_networkpolicy_metric_resets(mock_check_output, mock_cert, mock_timer):
     metrics = generate_latest(app_module.registry).decode("utf-8")
     assert 'namespace_without_networkpolicy{namespace="ns1"}' not in metrics
     assert app_module.ns_without_np_total._value.get() == 0
+@mock.patch("app.app.Timer")
+
+@mock.patch("app.app.get_cert_expiry")
+@mock.patch("subprocess.check_output")
+def test_route_cert_expiry_removal(mock_check_output, mock_cert, mock_timer):
+    route_json_first = b'{"items":[{"metadata":{"namespace":"ns1","name":"r1"},"spec":{"host":"r1.example.com","tls":{"certificate":"dummy","key":"dummy"}}}]}'
+    route_json_empty = b'{"items":[]}'
+    mock_timer.return_value.start.return_value = None
+    mock_cert.return_value = int(time.time()) + 10 * 86400
+    mock_check_output.side_effect = [
+        "192.168.1.10",
+        "node1",
+        route_json_first.decode(),
+    ]
+    os.environ["CONFIG_PATH"] = "tests/config_disabled.json"
+    app_module.create_app("tests/config_disabled.json")
+    app_module.enabled_features = {"route_cert": True}
+    app_module.update_metrics()
+    metrics = generate_latest(app_module.registry).decode("utf-8")
+    assert "routes_cert_expiring_total 1.0" in metrics
+    assert 'namespace="ns1"' in metrics and 'route="r1"' in metrics
+    mock_check_output.side_effect = [
+        "",
+        "",
+        route_json_empty.decode(),
+    ]
+    app_module.update_metrics()
+    metrics = generate_latest(app_module.registry).decode("utf-8")
+    assert "routes_cert_expiring_total 0.0" in metrics
+    assert 'route_cert_expiry_timestamp{namespace="ns1",route="r1"' not in metrics
+
+@mock.patch("app.app.Timer")
+@mock.patch("app.app.get_cert_expiry")
+@mock.patch("subprocess.check_output")
+def test_priv_sa_scc_filter(mock_check_output, mock_cert, mock_timer):
+    pvc_json = b'{"items":[]}'
+    pv_json = b'{"items":[]}'
+    deploy_json = b'{"items":[{"metadata":{"namespace":"ns1","name":"app1"},"spec":{"replicas":1,"template":{"spec":{"serviceAccountName":"sa1","containers":[{"name":"c1"}]}}}}]}'
+    sts_json = b'{"items":[]}'
+    scc_json = b'{"items":[{"metadata":{"name":"privileged"},"users":[]} ]}'
+    rb_json = b'{"items":[{"metadata":{"namespace":"ns1"},"roleRef":{"name":"system:openshift:scc:privileged"},"subjects":[{"kind":"ServiceAccount","name":"sa1"}]}]}'
+    crb_json = b'{"items":[]}'
+    route_json = b'{"items":[]}'
+    mock_timer.return_value.start.return_value = None
+    mock_cert.return_value = int(time.time()) + 60 * 86400
+    mock_check_output.side_effect = [
+        "192.168.1.10",
+        "node1",
+        "ns1",
+        "",
+        "",
+        pvc_json.decode(),
+        pv_json.decode(),
+        deploy_json.decode(),
+        sts_json.decode(),
+        scc_json.decode(),
+        rb_json.decode(),
+        crb_json.decode(),
+        route_json.decode(),
+    ]
+    os.environ["CONFIG_PATH"] = "tests/config_test.json"
+    app_module.create_app("tests/config_test.json")
+    app_module.scc_types = ["anyuid"]
+    app_module.update_metrics()
+    metrics = generate_latest(app_module.registry).decode("utf-8")
+    assert "privileged_serviceaccount_total 0.0" in metrics
