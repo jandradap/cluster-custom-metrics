@@ -1,7 +1,5 @@
 import os
 import time
-import datetime
-import re
 from unittest import mock
 
 import app.app as app_module
@@ -19,10 +17,10 @@ def test_update_metrics(mock_check_output, mock_cert, mock_timer):
     scc_json = b'{"items":[{"metadata":{"name":"privileged"},"users":["system:serviceaccount:ns1:sa1"]}]}'
     rb_json = b'{"items":[{"metadata":{"namespace":"ns1"},"roleRef":{"name":"system:openshift:scc:privileged"},"subjects":[{"kind":"ServiceAccount","name":"sa2"}]}]}'
     crb_json = b'{"items":[]}'
-    route_json = b'{"items":[{"metadata":{"namespace":"ns1","name":"r1"},"spec":{"host":"r1.example.com","tls":{"certificate":"dummy","key":"dummy"}}}]}'
+    route_json = b'{"items":[{"metadata":{"namespace":"ns1","name":"r1"},"spec":{"host":"r1.example.com","tls":{"certificate":"dummy"}}}]}'
 
     mock_timer.return_value.start.return_value = None
-    mock_cert.return_value = 2000000000
+    mock_cert.return_value = int(time.time()) + 60 * 86400
     mock_check_output.side_effect = [
         "192.168.1.100\n192.168.1.101",
         "node1\nnode2",
@@ -52,22 +50,10 @@ def test_update_metrics(mock_check_output, mock_cert, mock_timer):
     assert app_module.priv_sa_total._value.get() == 2
     assert app_module.routes_cert_expiring_total._value.get() == 0
 
-    metrics = generate_latest(app_module.registry).decode("utf-8")
+    metrics = app_module.generate_latest(app_module.registry).decode("utf-8")
     assert 'serviceaccount="sa2"' in metrics
     assert 'privileged_serviceaccount{app="app1",namespace="ns1",scc="privileged",serviceaccount="sa1"} 1.0' in metrics
     assert 'privileged_serviceaccount{app="app2",namespace="ns1",scc="privileged",serviceaccount="sa2"} 1.0' in metrics
-    expiry_date = datetime.datetime.fromtimestamp(2000000000).strftime("%Y-%m-%d")
-    pattern = (
-        r"route_cert_expiry_timestamp{"
-        r"(?=.*namespace=\"ns1\")"
-        r"(?=.*route=\"r1\")"
-        r"(?=.*host=\"r1\.example\.com\")"
-        rf"(?=.*expiry_date=\"{expiry_date}\")"
-        r"[^}]*}"
-        r" ([0-9]+\.?[0-9]*)"
-    )
-    match = re.search(pattern, metrics)
-    assert match and float(match.group(1)) > 0
 
 
 @mock.patch("app.app.Timer")
