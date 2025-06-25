@@ -21,11 +21,6 @@ RUN  microdnf update -y && \
     microdnf clean all && \
     rm -rf /root/.cache
 
-#oc
-RUN curl -sL https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz \
-    | tar -xz -C /usr/local/bin oc && \
-    chmod +x /usr/local/bin/oc
-
 USER 1001
 
 # Copiar archivos de la app

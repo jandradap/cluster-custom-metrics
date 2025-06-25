@@ -1,6 +1,5 @@
 
 import os
-import subprocess
 import ipaddress
 import json
 import logging
@@ -10,6 +9,7 @@ import tempfile
 import datetime
 import time
 from threading import Timer
+import importlib
 from flask import Flask, Response, render_template
 from prometheus_client import Gauge, generate_latest, CollectorRegistry
 
@@ -19,6 +19,51 @@ log_level = logging.DEBUG if debug_mode else logging.INFO
 logging.basicConfig(level=log_level, format='%(asctime)s - %(levelname)s - %(message)s')
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
+
+_dyn_client = None
+
+def get_client():
+    """Return a cached OpenShift client instance."""
+    global _dyn_client
+    if _dyn_client is None:
+        try:
+            oc_mod = importlib.import_module("openshift_client")
+            k8s_config = importlib.import_module("kubernetes.config")
+            k8s_client = importlib.import_module("kubernetes.client")
+        except Exception as exc:
+            raise RuntimeError("openshift-client library is required") from exc
+
+        try:
+            k8s_config.load_incluster_config()
+        except Exception:
+            k8s_config.load_kube_config()
+
+        _dyn_client = oc_mod.OpenShiftClient(k8s_client.ApiClient())
+    return _dyn_client
+
+RESOURCE_DEF = {
+    "egressip": {"api_version": "k8s.ovn.org/v1", "kind": "EgressIP"},
+    "nodes": {"api_version": "v1", "kind": "Node"},
+    "ns": {"api_version": "v1", "kind": "Namespace"},
+    "networkpolicy": {"api_version": "networking.k8s.io/v1", "kind": "NetworkPolicy"},
+    "resourcequota": {"api_version": "v1", "kind": "ResourceQuota"},
+    "pvc": {"api_version": "v1", "kind": "PersistentVolumeClaim"},
+    "pv": {"api_version": "v1", "kind": "PersistentVolume"},
+    "deploy": {"api_version": "apps/v1", "kind": "Deployment"},
+    "statefulset": {"api_version": "apps/v1", "kind": "StatefulSet"},
+    "scc": {"api_version": "security.openshift.io/v1", "kind": "SecurityContextConstraints"},
+    "rolebinding": {"api_version": "rbac.authorization.k8s.io/v1", "kind": "RoleBinding"},
+    "clusterrolebinding": {"api_version": "rbac.authorization.k8s.io/v1", "kind": "ClusterRoleBinding"},
+    "route": {"api_version": "route.openshift.io/v1", "kind": "Route"},
+}
+
+def fetch_resource(name, namespace=None):
+    info = RESOURCE_DEF[name]
+    cli = get_client()
+    res = cli.resources.get(api_version=info["api_version"], kind=info["kind"])
+    if namespace:
+        return res.get(namespace=namespace).to_dict()
+    return res.get().to_dict()
 
 @app.template_filter('datetime')
 def _format_datetime(value):
@@ -180,18 +225,50 @@ def update_metrics():
 
     def run_cmd(desc, cmd):
         try:
-            logging.debug(f"➡️ Running: {' '.join(cmd)}")
-            result = subprocess.check_output(cmd, text=True)
-            logging.debug(f"✅ Result {desc}:{result.strip()}")
-            return result.strip().splitlines()
+            resource = cmd[2]
+            if resource == "egressip":
+                data = fetch_resource("egressip")
+                ips = []
+                for it in data.get("items", []):
+                    ips.extend(it.get("spec", {}).get("egressIPs", []))
+                return ips
+            if resource == "nodes":
+                data = fetch_resource("nodes")
+                lines = []
+                for n in data.get("items", []):
+                    for a in n.get("status", {}).get("addresses", []):
+                        lines.append(f"{a.get('type')}:{a.get('address')}")
+                return lines
+            if resource == "ns":
+                data = fetch_resource("ns")
+                return [n.get("metadata", {}).get("name") for n in data.get("items", [])]
+            if resource == "networkpolicy":
+                ns = cmd[cmd.index("-n") + 1]
+                data = fetch_resource("networkpolicy", namespace=ns)
+                return ["exists"] if data.get("items") else []
+            if resource == "resourcequota":
+                ns = cmd[cmd.index("-n") + 1]
+                data = fetch_resource("resourcequota", namespace=ns)
+                return ["exists"] if data.get("items") else []
         except Exception as e:
             logging.warning(f"❌ Error at {desc}: {e}")
-            return []
+        return []
 
     def run_cmd_json(desc, cmd):
-        lines = run_cmd(desc, cmd)
         try:
-            return json.loads("\n".join(lines)) if lines else {}
+            resource = cmd[2]
+            mapping = {
+                "pvc": "pvc",
+                "pv": "pv",
+                "deploy": "deploy",
+                "statefulset": "statefulset",
+                "scc": "scc",
+                "rolebinding": "rolebinding",
+                "clusterrolebinding": "clusterrolebinding",
+                "route": "route",
+            }
+            name = mapping.get(resource)
+            return fetch_resource(name) if name else {}
         except Exception as e:
             logging.warning(f"❌ JSON parse error at {desc}: {e}")
             return {}
