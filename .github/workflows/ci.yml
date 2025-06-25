@@ -74,7 +74,7 @@ jobs:
         continue-on-error: ${{ github.ref == 'refs/heads/develop' }}
 
       - name: Tag and Push
-        if: github.ref == 'refs/heads/develop' || github.event_name == 'release'
+        if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/codex' || github.event_name == 'release'
         run: |
           docker tag cluster-custom-metrics:temp quay.io/jandradap/cluster-custom-metrics:${{ steps.get_tag.outputs.tag }}
           docker push quay.io/jandradap/cluster-custom-metrics:${{ steps.get_tag.outputs.tag }}
@@ -86,7 +86,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - name: Push to Docker Hub
-        if: github.ref == 'refs/heads/develop' || github.event_name == 'release'
+        if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/codex' || github.event_name == 'release'
         run: |
           docker tag cluster-custom-metrics:temp docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cluster-custom-metrics:${{ steps.get_tag.outputs.tag }}
           docker push docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cluster-custom-metrics:${{ steps.get_tag.outputs.tag }}
