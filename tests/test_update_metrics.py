@@ -6,12 +6,13 @@ from unittest import mock
 
 import app.app as app_module
 from prometheus_client import generate_latest
+import json
 
 
 @mock.patch("app.app.Timer")
 @mock.patch("app.app.get_cert_expiry")
-@mock.patch("subprocess.check_output")
-def test_update_metrics(mock_check_output, mock_cert, mock_timer):
+@mock.patch("app.app.fetch_resource")
+def test_update_metrics(mock_fetch, mock_cert, mock_timer):
     pvc_json = b'{"items":[{"metadata":{"namespace":"ns1","name":"pvc1"},"status":{"phase":"Pending"}},{"metadata":{"namespace":"ns1","name":"pvc2"},"status":{"phase":"Lost"}}]}'
     pv_json = b'{"items":[{"metadata":{"name":"pv1"},"status":{"phase":"Available"}}]}'
     deploy_json = b'{"items":[{"metadata":{"namespace":"ns1","name":"app1"},"spec":{"replicas":1,"template":{"spec":{"serviceAccountName":"sa1","containers":[{"name":"c1"}]}}}},{"metadata":{"namespace":"ns1","name":"app2"},"spec":{"replicas":2,"template":{"spec":{"serviceAccountName":"sa2","containers":[{"name":"c2","resources":{"requests":{"cpu":"10m"},"limits":{"cpu":"20m"}}}]}}}}]}'
@@ -23,21 +24,42 @@ def test_update_metrics(mock_check_output, mock_cert, mock_timer):
 
     mock_timer.return_value.start.return_value = None
     mock_cert.return_value = 2000000000
-    mock_check_output.side_effect = [
-        "192.168.1.100\n192.168.1.101",
-        "node1\nnode2",
-        "ns1",
-        "",
-        "",
-        pvc_json.decode(),
-        pv_json.decode(),
-        deploy_json.decode(),
-        sts_json.decode(),
-        scc_json.decode(),
-        rb_json.decode(),
-        crb_json.decode(),
-        route_json.decode(),
-    ]
+
+    def side_effect(resource, namespace=None):
+        if resource == "egressip":
+            return {"items": [{"spec": {"egressIPs": ["192.168.1.100", "192.168.1.101"]}}]}
+        if resource == "nodes":
+            return {
+                "items": [
+                    {"status": {"addresses": [{"type": "InternalIP", "address": "node1"}]}},
+                    {"status": {"addresses": [{"type": "InternalIP", "address": "node2"}]}}
+                ]
+            }
+        if resource == "ns":
+            return {"items": [{"metadata": {"name": "ns1"}}]}
+        if resource == "networkpolicy" and namespace == "ns1":
+            return {"items": []}
+        if resource == "resourcequota" and namespace == "ns1":
+            return {"items": []}
+        if resource == "pvc":
+            return json.loads(pvc_json.decode())
+        if resource == "pv":
+            return json.loads(pv_json.decode())
+        if resource == "deploy":
+            return json.loads(deploy_json.decode())
+        if resource == "statefulset":
+            return json.loads(sts_json.decode())
+        if resource == "scc":
+            return json.loads(scc_json.decode())
+        if resource == "rolebinding":
+            return json.loads(rb_json.decode())
+        if resource == "clusterrolebinding":
+            return json.loads(crb_json.decode())
+        if resource == "route":
+            return json.loads(route_json.decode())
+        return {}
+
+    mock_fetch.side_effect = side_effect
 
     os.environ["CONFIG_PATH"] = "tests/config_test.json"
     app_module.create_app("tests/config_test.json")
@@ -72,8 +94,8 @@ def test_update_metrics(mock_check_output, mock_cert, mock_timer):
 
 @mock.patch("app.app.Timer")
 @mock.patch("app.app.get_cert_expiry")
-@mock.patch("subprocess.check_output")
-def test_networkpolicy_metric_resets(mock_check_output, mock_cert, mock_timer):
+@mock.patch("app.app.fetch_resource")
+def test_networkpolicy_metric_resets(mock_fetch, mock_cert, mock_timer):
     pvc_json = b'{"items":[]}'
     pv_json = b'{"items":[]}'
     empty_json = b'{"items":[]}'
@@ -81,46 +103,31 @@ def test_networkpolicy_metric_resets(mock_check_output, mock_cert, mock_timer):
     mock_timer.return_value.start.return_value = None
     mock_cert.return_value = 0
 
-    first_side_effect = [
-        "",  # egressip
-        "",  # nodes
-        "ns1",  # namespaces
-        "",  # networkpolicy
-        "",  # resourcequota
-        pvc_json.decode(),
-        pv_json.decode(),
-        empty_json.decode(),  # deploy
-        empty_json.decode(),  # sts
-        empty_json.decode(),  # scc
-        empty_json.decode(),  # rb
-        empty_json.decode(),  # crb
-        empty_json.decode(),  # route
-    ]
+    def first_side_effect(resource, namespace=None):
+        data = {"items": []}
+        if resource == "ns":
+            return {"items": [{"metadata": {"name": "ns1"}}]}
+        if resource in {"egressip", "nodes"}:
+            return {"items": []}
+        if resource == "pvc":
+            return json.loads(pvc_json.decode())
+        if resource == "pv":
+            return json.loads(pv_json.decode())
+        return data
 
-    second_side_effect = [
-        "",  # egressip
-        "",  # nodes
-        "ns1",  # namespaces
-        "np1",  # networkpolicy exists
-        "",  # resourcequota
-        pvc_json.decode(),
-        pv_json.decode(),
-        empty_json.decode(),
-        empty_json.decode(),
-        empty_json.decode(),
-        empty_json.decode(),
-        empty_json.decode(),
-        empty_json.decode(),
-    ]
+    def second_side_effect(resource, namespace=None):
+        if resource == "networkpolicy" and namespace == "ns1":
+            return {"items": ["np1"]}
+        return first_side_effect(resource, namespace)
 
-    mock_check_output.side_effect = first_side_effect
+    mock_fetch.side_effect = first_side_effect
     os.environ["CONFIG_PATH"] = "tests/config_test.json"
     app_module.create_app("tests/config_test.json")
     app_module.update_metrics()
     metrics = generate_latest(app_module.registry).decode("utf-8")
     assert 'namespace_without_networkpolicy{namespace="ns1"} 1.0' in metrics
 
-    mock_check_output.side_effect = second_side_effect
+    mock_fetch.side_effect = second_side_effect
     app_module.update_metrics()
     metrics = generate_latest(app_module.registry).decode("utf-8")
     assert 'namespace_without_networkpolicy{namespace="ns1"}' not in metrics
@@ -128,17 +135,22 @@ def test_networkpolicy_metric_resets(mock_check_output, mock_cert, mock_timer):
 @mock.patch("app.app.Timer")
 
 @mock.patch("app.app.get_cert_expiry")
-@mock.patch("subprocess.check_output")
-def test_route_cert_expiry_removal(mock_check_output, mock_cert, mock_timer):
+@mock.patch("app.app.fetch_resource")
+def test_route_cert_expiry_removal(mock_fetch, mock_cert, mock_timer):
     route_json_first = b'{"items":[{"metadata":{"namespace":"ns1","name":"r1"},"spec":{"host":"r1.example.com","tls":{"certificate":"dummy","key":"dummy"}}}]}'
     route_json_empty = b'{"items":[]}'
     mock_timer.return_value.start.return_value = None
     mock_cert.return_value = int(time.time()) + 10 * 86400
-    mock_check_output.side_effect = [
-        "192.168.1.10",
-        "node1",
-        route_json_first.decode(),
-    ]
+    def first(resource, namespace=None):
+        if resource == "egressip":
+            return {"items": [{"spec": {"egressIPs": ["192.168.1.10"]}}]}
+        if resource == "nodes":
+            return {"items": [{"status": {"addresses": [{"type": "InternalIP", "address": "node1"}]}}]}
+        if resource == "route":
+            return json.loads(route_json_first.decode())
+        return {"items": []}
+
+    mock_fetch.side_effect = first
     os.environ["CONFIG_PATH"] = "tests/config_disabled.json"
     app_module.create_app("tests/config_disabled.json")
     app_module.enabled_features = {"route_cert": True}
@@ -146,11 +158,12 @@ def test_route_cert_expiry_removal(mock_check_output, mock_cert, mock_timer):
     metrics = generate_latest(app_module.registry).decode("utf-8")
     assert "routes_cert_expiring_total 1.0" in metrics
     assert 'namespace="ns1"' in metrics and 'route="r1"' in metrics
-    mock_check_output.side_effect = [
-        "",
-        "",
-        route_json_empty.decode(),
-    ]
+    def second(resource, namespace=None):
+        if resource == "route":
+            return json.loads(route_json_empty.decode())
+        return {"items": []}
+
+    mock_fetch.side_effect = second
     app_module.update_metrics()
     metrics = generate_latest(app_module.registry).decode("utf-8")
     assert "routes_cert_expiring_total 0.0" in metrics
@@ -158,8 +171,8 @@ def test_route_cert_expiry_removal(mock_check_output, mock_cert, mock_timer):
 
 @mock.patch("app.app.Timer")
 @mock.patch("app.app.get_cert_expiry")
-@mock.patch("subprocess.check_output")
-def test_priv_sa_scc_filter(mock_check_output, mock_cert, mock_timer):
+@mock.patch("app.app.fetch_resource")
+def test_priv_sa_scc_filter(mock_fetch, mock_cert, mock_timer):
     pvc_json = b'{"items":[]}'
     pv_json = b'{"items":[]}'
     deploy_json = b'{"items":[{"metadata":{"namespace":"ns1","name":"app1"},"spec":{"replicas":1,"template":{"spec":{"serviceAccountName":"sa1","containers":[{"name":"c1"}]}}}}]}'
@@ -170,21 +183,32 @@ def test_priv_sa_scc_filter(mock_check_output, mock_cert, mock_timer):
     route_json = b'{"items":[]}'
     mock_timer.return_value.start.return_value = None
     mock_cert.return_value = int(time.time()) + 60 * 86400
-    mock_check_output.side_effect = [
-        "192.168.1.10",
-        "node1",
-        "ns1",
-        "",
-        "",
-        pvc_json.decode(),
-        pv_json.decode(),
-        deploy_json.decode(),
-        sts_json.decode(),
-        scc_json.decode(),
-        rb_json.decode(),
-        crb_json.decode(),
-        route_json.decode(),
-    ]
+    def side(resource, namespace=None):
+        if resource == "egressip":
+            return {"items": [{"spec": {"egressIPs": ["192.168.1.10"]}}]}
+        if resource == "nodes":
+            return {"items": [{"status": {"addresses": [{"type": "InternalIP", "address": "node1"}]}}]}
+        if resource == "ns":
+            return {"items": [{"metadata": {"name": "ns1"}}]}
+        if resource == "pvc":
+            return json.loads(pvc_json.decode())
+        if resource == "pv":
+            return json.loads(pv_json.decode())
+        if resource == "deploy":
+            return json.loads(deploy_json.decode())
+        if resource == "statefulset":
+            return json.loads(sts_json.decode())
+        if resource == "scc":
+            return json.loads(scc_json.decode())
+        if resource == "rolebinding":
+            return json.loads(rb_json.decode())
+        if resource == "clusterrolebinding":
+            return json.loads(crb_json.decode())
+        if resource == "route":
+            return json.loads(route_json.decode())
+        return {"items": []}
+
+    mock_fetch.side_effect = side
     os.environ["CONFIG_PATH"] = "tests/config_test.json"
     app_module.create_app("tests/config_test.json")
     app_module.scc_types = ["anyuid"]

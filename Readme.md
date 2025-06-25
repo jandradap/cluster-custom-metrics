@@ -24,6 +24,7 @@
 * Compatible with OpenShift and Kubernetes.
 * Easily extensible with your own metrics.
 * Lightweight and containerized.
+* Uses the Python `openshift-client` library instead of relying on the `oc` binary.
 * Detect unbound and pending PVCs.
 * Identify single-replica or un‑resourced workloads.
 * Report workloads using privileged ServiceAccounts.
