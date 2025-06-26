@@ -27,7 +27,7 @@ def get_client():
     global _dyn_client
     if _dyn_client is None:
         try:
-            oc_mod = importlib.import_module("openshift_client")
+            oc_mod = importlib.import_module("openshift_client.client")
             k8s_config = importlib.import_module("kubernetes.config")
             k8s_client = importlib.import_module("kubernetes.client")
         except Exception as exc:
