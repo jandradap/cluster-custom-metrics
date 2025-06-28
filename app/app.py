@@ -10,6 +10,7 @@ import datetime
 import time
 from threading import Timer
 import importlib
+import shutil
 
 _oc_lib = None
 from flask import Flask, Response, render_template
@@ -23,13 +24,16 @@ logging.basicConfig(level=log_level, format='%(asctime)s - %(levelname)s - %(mes
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
 def get_client():
-    """Return the cached openshift-client module."""
+    """Return the cached openshift-client module and verify oc binary."""
     global _oc_lib
     if _oc_lib is None:
         try:
             _oc_lib = importlib.import_module("openshift_client")
         except Exception as exc:
             raise RuntimeError("openshift-client library is required") from exc
+
+        if shutil.which("oc") is None:
+            raise RuntimeError("oc CLI is required by openshift-client")
     return _oc_lib
 
 RESOURCE_DEF = {
