@@ -10,6 +10,9 @@ import datetime
 import time
 from threading import Timer
 import importlib
+import shutil
+
+_oc_lib = None
 from flask import Flask, Response, render_template
 from prometheus_client import Gauge, generate_latest, CollectorRegistry
 
@@ -20,26 +23,18 @@ logging.basicConfig(level=log_level, format='%(asctime)s - %(levelname)s - %(mes
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
-_dyn_client = None
-
 def get_client():
-    """Return a cached OpenShift client instance."""
-    global _dyn_client
-    if _dyn_client is None:
+    """Return the cached openshift-client module and verify oc binary."""
+    global _oc_lib
+    if _oc_lib is None:
         try:
-            oc_mod = importlib.import_module("openshift_client.client")
-            k8s_config = importlib.import_module("kubernetes.config")
-            k8s_client = importlib.import_module("kubernetes.client")
+            _oc_lib = importlib.import_module("openshift_client")
         except Exception as exc:
             raise RuntimeError("openshift-client library is required") from exc
 
-        try:
-            k8s_config.load_incluster_config()
-        except Exception:
-            k8s_config.load_kube_config()
-
-        _dyn_client = oc_mod.OpenShiftClient(k8s_client.ApiClient())
-    return _dyn_client
+        if shutil.which("oc") is None:
+            raise RuntimeError("oc CLI is required by openshift-client")
+    return _oc_lib
 
 RESOURCE_DEF = {
     "egressip": {"api_version": "k8s.ovn.org/v1", "kind": "EgressIP"},
@@ -58,12 +53,11 @@ RESOURCE_DEF = {
 }
 
 def fetch_resource(name, namespace=None):
-    info = RESOURCE_DEF[name]
-    cli = get_client()
-    res = cli.resources.get(api_version=info["api_version"], kind=info["kind"])
+    oc = get_client()
     if namespace:
-        return res.get(namespace=namespace).to_dict()
-    return res.get().to_dict()
+        with oc.project(namespace):
+            return json.loads(oc.selector(name).object_json())
+    return json.loads(oc.selector(name, all_namespaces=True).object_json())
 
 @app.template_filter('datetime')
 def _format_datetime(value):
