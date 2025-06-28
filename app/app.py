@@ -31,7 +31,6 @@ def get_client():
             _oc_lib = importlib.import_module("openshift_client")
         except Exception as exc:
             raise RuntimeError("openshift-client library is required") from exc
-
         oc_bin = os.getenv("OPENSHIFT_CLIENT_PYTHON_DEFAULT_OC_PATH", "oc")
         if shutil.which(oc_bin) is None:
             raise RuntimeError("oc CLI is required by openshift-client")
