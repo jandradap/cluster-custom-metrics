@@ -41,7 +41,9 @@ This component is deployed as a Kubernetes Deployment and configured with a Conf
 
 * Kubernetes or OpenShift cluster (recomended)
 * Prometheus Operator installed
-* `oc` CLI available in the container or host running the exporter
+* `oc` CLI available in the container or host running the exporter.
+  Use the `OPENSHIFT_CLIENT_PYTHON_DEFAULT_OC_PATH` environment variable to
+  specify the binary location if it is not in `PATH`.
 * Access to create namespaces, configmaps, and deployments
 
 ## Installation
