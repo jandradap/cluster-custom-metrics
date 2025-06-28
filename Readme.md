@@ -24,7 +24,7 @@
 * Compatible with OpenShift and Kubernetes.
 * Easily extensible with your own metrics.
 * Lightweight and containerized.
-* Uses the Python `openshift-client` library instead of relying on the `oc` binary.
+* Uses the Python `openshift-client` library. The `oc` CLI must be installed as it is invoked internally.
 * Detect unbound and pending PVCs.
 * Identify single-replica or un‑resourced workloads.
 * Report workloads using privileged ServiceAccounts.
@@ -41,6 +41,9 @@ This component is deployed as a Kubernetes Deployment and configured with a Conf
 
 * Kubernetes or OpenShift cluster (recomended)
 * Prometheus Operator installed
+* `oc` CLI available in the container or host running the exporter.
+  Use the `OPENSHIFT_CLIENT_PYTHON_DEFAULT_OC_PATH` environment variable to
+  specify the binary location if it is not in `PATH`.
 * Access to create namespaces, configmaps, and deployments
 
 ## Installation
