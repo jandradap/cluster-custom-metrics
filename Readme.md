@@ -167,6 +167,16 @@ PYTHONPATH=. pytest --cov=app tests/
 These dependencies match those installed in `.github/workflows/ci.yml`.
 
 
+## Testing
+
+```bash
+pip install -r tests/requirements.txt
+PYTHONPATH=. pytest --cov=app tests/
+```
+
+These dependencies match those installed in `.github/workflows/ci.yml`.
+
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute.
