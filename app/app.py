@@ -175,26 +175,30 @@ def get_cert_expiry(cert_pem: str) -> int:
         logging.warning(f"Could not parse certificate expiry: {e}")
     return 0
 
+def run_cmd(desc, cmd):
+    """Execute a command and return the output lines or an empty list."""
+    try:
+        logging.debug(f"➡️ Running: {' '.join(cmd)}")
+        result = subprocess.check_output(cmd, text=True)
+        logging.debug(f"✅ Result {desc}:{result.strip()}")
+        return result.strip().splitlines()
+    except Exception as e:
+        logging.warning(f"❌ Error at {desc}: {e}")
+        return []
+
+
+def run_cmd_json(desc, cmd):
+    """Run a command expected to return JSON and parse it."""
+    lines = run_cmd(desc, cmd)
+    try:
+        return json.loads("\n".join(lines)) if lines else {}
+    except Exception as e:
+        logging.warning(f"❌ JSON parse error at {desc}: {e}")
+        return {}
+
+
 def update_metrics():
     logging.debug("⏳ Running periodic metrics update")
-
-    def run_cmd(desc, cmd):
-        try:
-            logging.debug(f"➡️ Running: {' '.join(cmd)}")
-            result = subprocess.check_output(cmd, text=True)
-            logging.debug(f"✅ Result {desc}:{result.strip()}")
-            return result.strip().splitlines()
-        except Exception as e:
-            logging.warning(f"❌ Error at {desc}: {e}")
-            return []
-
-    def run_cmd_json(desc, cmd):
-        lines = run_cmd(desc, cmd)
-        try:
-            return json.loads("\n".join(lines)) if lines else {}
-        except Exception as e:
-            logging.warning(f"❌ JSON parse error at {desc}: {e}")
-            return {}
 
     # Egress IPs from spec.egressIPs
     #oc get egressip -A -o jsonpath='{range .items[*]}{.spec.egressIPs[*]}{"\n"}{end}'
