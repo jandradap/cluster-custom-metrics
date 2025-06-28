@@ -46,3 +46,25 @@ def test_format_datetime_valid():
 
 def test_format_datetime_invalid():
     assert app_module._format_datetime('bad') == ''
+
+
+@mock.patch('subprocess.check_output')
+def test_run_cmd_success(mock_co):
+    mock_co.return_value = 'a\nb\n'
+    assert app_module.run_cmd('desc', ['cmd']) == ['a', 'b']
+
+
+@mock.patch('subprocess.check_output', side_effect=Exception('boom'))
+def test_run_cmd_failure(mock_co):
+    assert app_module.run_cmd('desc', ['cmd']) == []
+
+
+@mock.patch('app.app.run_cmd')
+def test_run_cmd_json_success(mock_run):
+    mock_run.return_value = ['{"k": 1}']
+    assert app_module.run_cmd_json('d', ['cmd']) == {"k": 1}
+
+
+@mock.patch('app.app.run_cmd', return_value=['bad'])
+def test_run_cmd_json_invalid(mock_run):
+    assert app_module.run_cmd_json('d', ['cmd']) == {}
