@@ -34,6 +34,7 @@ def get_client():
         oc_bin = os.getenv("OPENSHIFT_CLIENT_PYTHON_DEFAULT_OC_PATH", "oc")
         if shutil.which(oc_bin) is None:
             raise RuntimeError("oc CLI is required by openshift-client")
+        _oc_lib.set_default_oc_path(oc_bin)
     return _oc_lib
 
 RESOURCE_DEF = {

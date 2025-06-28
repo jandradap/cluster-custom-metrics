@@ -43,7 +43,8 @@ This component is deployed as a Kubernetes Deployment and configured with a Conf
 * Prometheus Operator installed
 * `oc` CLI available in the container or host running the exporter.
   Use the `OPENSHIFT_CLIENT_PYTHON_DEFAULT_OC_PATH` environment variable to
-  specify the binary location if it is not in `PATH`.
+  specify the binary location if it is not in `PATH`. The exporter configures
+  this path automatically when starting.
 * Access to create namespaces, configmaps, and deployments
 
 ## Installation
