@@ -1,5 +1,5 @@
 #FROM registry.access.redhat.com/ubi10/ubi@sha256:835f0c9321be6101a06c6f49049c5c197b095d704e94df69881124645e9f53a0
-FROM registry.redhat.io/ubi9-minimal@sha256:c7d44146f826037f6873d99da479299b889473492d3c1ab8af86f08af04ec8a0
+FROM registry.access.redhat.com/ubi9-minimal@sha256:c7d44146f826037f6873d99da479299b889473492d3c1ab8af86f08af04ec8a0
 
 ENV FLASK_APP=app.py \
     FLASK_RUN_PORT=8080 \
