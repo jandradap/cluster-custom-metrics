@@ -13,10 +13,10 @@ USER 0
 COPY requirements.txt .
 
 RUN  microdnf update -y && \
-    microdnf install -y tar gzip python3 python3-devel python3-pip && \
-    pip install --no-cache-dir --upgrade pip setuptools && \
-    rm -rf /usr/lib/python3.9/site-packages/pip-*.dist-info \
-    /usr/lib/python3.9/site-packages/setuptools-*.dist-info && \
+    microdnf install -y tar gzip python3.12 python3.12-devel python3.12-pip && \
+    pip3.12 install --no-cache-dir --upgrade pip setuptools && \
+    rm -rf /usr/lib/python3.*/site-packages/pip-*.dist-info \
+    /usr/lib/python3.*/site-packages/setuptools-*.dist-info && \
     pip install --no-cache-dir -r requirements.txt && \
     microdnf clean all && \
     rm -rf /root/.cache
